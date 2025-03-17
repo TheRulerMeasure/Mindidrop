@@ -192,7 +192,7 @@ local drawBlocker = function (blockerType, cellX, cellY)
     x = x + (cellX-1) * gameConst.cellWidth
     y = gameConst.boardOffsetY
     y = y + (cellY-1) * gameConst.cellHeight
-    
+
     if blockerType <= 0 then
         return
     end
@@ -242,10 +242,6 @@ end
 
 local keypressed = function (game, key, scancode)
     if scancode == 's' then
-        game.steps = game.steps + 1
-        if game.steps % 5 == 0 then
-            game:insertCoinFromSlot(2)
-        end
         game:coinAllMoveDown()
     end
 end
