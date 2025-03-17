@@ -2,6 +2,13 @@
 
 local gameConst = require "game_const"
 
+local newMoveResult = function (result, cellToInsertCoin)
+    return {
+        result = result,
+        cellToInsertCoin = cellToInsertCoin,
+    }
+end
+
 local debugPrintCoinMap = function (game)
     print("----coin map-----")
     for y = 1, #game.coinMap do
@@ -19,6 +26,13 @@ local leverLeftSwitch = function (game, x, y)
     game.blockerMap[y - 1][x + 1] = 0
     game.blockerMap[y][x]         = 0
     game.blockerMap[y][x + 1]     = gameConst.leverRight
+    
+    if game.blockerMap[y - 2][x + 1] == gameConst.blockerCoinRight then
+        game.blockerMap[y - 2][x + 1] = 0
+        local cellToInsertCoin = { x = x + 1, y = y - 3 }
+        return cellToInsertCoin
+    end
+    return nil
 end
 
 local leverRightSwitch = function (game, x, y)
@@ -26,6 +40,17 @@ local leverRightSwitch = function (game, x, y)
     game.blockerMap[y - 1][x]     = gameConst.blockerRight
     game.blockerMap[y][x - 1]     = gameConst.leverLeft
     game.blockerMap[y][x]         = 0
+    
+    if game.blockerMap[y - 2][x - 1] == gameConst.blockerCoinLeft then
+        game.blockerMap[y - 2][x - 1] = 0
+        local cellToInsertCoin = { x = x - 1, y = y - 3 }
+        return cellToInsertCoin
+    end
+    return nil
+end
+
+local scoredAtSlot = function (game, slot)
+    print("scored at slot " .. slot)
 end
 
 local addCoinAtCell = function (game, cellX, cellY, amount)
@@ -33,12 +58,12 @@ local addCoinAtCell = function (game, cellX, cellY, amount)
     game.coinMap[cellY][cellX] = game.coinMap[cellY][cellX] + a
 end
 
-local coinMoveAndSetCellDown = function (game, coin, dirX)
-    local dx = math.min(math.max(dirX or 0, -1), 1)
-    dx = math.floor(dx)
+local coinMoveAndSetCell = function (game, coin, dx, dy)
+    local dx2 = math.floor(dx or 0)
+    local dy2 = math.floor(dy or 0)
     game:addCoinAtCell(coin.x, coin.y, -1)
-    coin.x = coin.x + dx
-    coin.y = coin.y + 1
+    coin.x = coin.x + dx2
+    coin.y = coin.y + dy2
     game:addCoinAtCell(coin.x, coin.y, 1)
 end
 
@@ -53,7 +78,7 @@ end
 local handleBlockerCell = function (game, coin)
     local bCell = game.blockerMap[coin.y + 1][coin.x]
     if bCell == gameConst.blockerLeft then
-        game:addCoinAtCell(coin.x, coin.y, -1) -- coinMap
+        game:addCoinAtCell(coin.x, coin.y, -1)
         game.blockerMap[coin.y][coin.x] = gameConst.blockerCoinLeft
         return true
     end
@@ -65,14 +90,36 @@ local handleBlockerCell = function (game, coin)
     return false
 end
 
+local handleLeverCell = function (game, coin)
+    local bCell = game.blockerMap[coin.y + 1][coin.x]
+    if bCell == gameConst.leverLeft then
+        local cellToInsertCoin = game:leverLeftSwitch(coin.x, coin.y + 1)
+        return cellToInsertCoin
+    end
+    if bCell == gameConst.leverRight then
+        local cellToInsertCoin = game:leverRightSwitch(coin.x, coin.y + 1)
+        return cellToInsertCoin
+    end
+    return nil
+end
+
 local handleBlockerCoinCell = function (game, coin)
+    local curCell = game.blockerMap[coin.y][coin.x]
+    if curCell == gameConst.blockerCoinLeft then
+        game:coinMoveAndSetCell(coin, 1, 0)
+        return true
+    end
+    if curCell == gameConst.blockerCoinRight then
+        game:coinMoveAndSetCell(coin, -1, 0)
+        return true
+    end
     local bCell = game.blockerMap[coin.y + 1][coin.x]
     if bCell == gameConst.blockerCoinLeft then
-        game:coinMoveAndSetCellDown(coin, 1)
+        game:coinMoveAndSetCell(coin, 1, 1)
         return true
     end
     if bCell == gameConst.blockerCoinRight then
-        game:coinMoveAndSetCellDown(coin, -1)
+        game:coinMoveAndSetCell(coin, -1, 1)
         return true
     end
     return false
@@ -81,26 +128,35 @@ end
 local coinMoveDown = function (game, coin)
     local hasScored = game:handleScoreCell(coin)
     if hasScored then
-        return "scored"
-    end
-    local hasBlocker = game:handleBlockerCell(coin)
-    if hasBlocker then
-        return "blocked"
+        return newMoveResult("scored", nil)
     end
     local hasBlockerCoin = game:handleBlockerCoinCell(coin)
     if hasBlockerCoin then
-        return "moved"
+        return newMoveResult("moved", nil)
     end
-    game:coinMoveAndSetCellDown(coin)
-    return "moved"
+    local hasBlocker = game:handleBlockerCell(coin)
+    if hasBlocker then
+        return newMoveResult("blocked", nil)
+    end
+    local cellToInsertCoin = game:handleLeverCell(coin)
+    game:coinMoveAndSetCell(coin, 0, 1)
+    return newMoveResult("moved", cellToInsertCoin)
 end
 
 local coinAllMoveDown = function (game)
     local indexesTBR = {}
+    local coinsToBeInserted = {}
     for i, v in ipairs(game.movingCoins) do
         local moveResult = game:coinMoveDown(v)
-        if moveResult == "blocked" or moveResult == "scored" then
+        if moveResult.result == "blocked" then
             table.insert(indexesTBR, i)
+        elseif moveResult.result == "scored" then
+            table.insert(indexesTBR, i)
+            game:scoredAtSlot(v.x)
+        else
+            if moveResult.cellToInsertCoin then
+                table.insert(coinsToBeInserted, moveResult.cellToInsertCoin)
+            end
         end
     end
     if #indexesTBR > 0 then
@@ -108,17 +164,26 @@ local coinAllMoveDown = function (game)
             table.remove(game.movingCoins, indexesTBR[i])
         end
     end
+    for i, v in ipairs(coinsToBeInserted) do
+        game:insertCoin(v.x, v.y)
+    end
     -- debug
-    game:debugPrintCoinMap()
+    -- game:debugPrintCoinMap()
 end
 
-local insertCoin = function (game, slot)
+local insertCoin = function (game, cellX, cellY)
+    local x = math.floor(cellX)
+    local y = math.floor(cellY)
+    table.insert(game.movingCoins, { x = x, y = y })
+    game:addCoinAtCell(x, y, 1)
+end
+
+local insertCoinFromSlot = function (game, slot)
     local clampedSlot = math.min(math.max(slot or 1, 1), 8)
     clampedSlot = math.floor(clampedSlot)
     local x = clampedSlot + 4
     local y = 1
-    table.insert(game.movingCoins, { x = x, y = y })
-    game:addCoinAtCell(x, y, 1)
+    game:insertCoin(x, y)
 end
 
 local drawBlocker = function (blockerType, cellX, cellY)
@@ -177,6 +242,10 @@ end
 
 local keypressed = function (game, key, scancode)
     if scancode == 's' then
+        game.steps = game.steps + 1
+        if game.steps % 5 == 0 then
+            game:insertCoinFromSlot(2)
+        end
         game:coinAllMoveDown()
     end
 end
@@ -249,20 +318,25 @@ return function ()
         
         movingCoins = {},
         
+        steps = -1,
+        
         update = update,
         draw = draw,
         keypressed = keypressed,
         
         addCoinAtCell = addCoinAtCell,
+        insertCoinFromSlot = insertCoinFromSlot,
         insertCoin = insertCoin,
         coinAllMoveDown = coinAllMoveDown,
         coinMoveDown = coinMoveDown,
-        coinMoveAndSetCellDown = coinMoveAndSetCellDown,
+        coinMoveAndSetCell = coinMoveAndSetCell,
         handleScoreCell = handleScoreCell,
         handleBlockerCell = handleBlockerCell,
         handleBlockerCoinCell = handleBlockerCoinCell,
+        handleLeverCell = handleLeverCell,
         leverLeftSwitch = leverLeftSwitch,
         leverRightSwitch = leverRightSwitch,
+        scoredAtSlot = scoredAtSlot,
         
         debugPrintCoinMap = debugPrintCoinMap,
     }

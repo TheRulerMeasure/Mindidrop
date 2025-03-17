@@ -6,8 +6,6 @@ local game = nil
 
 love.load = function ()
     game = gameNew()
-    game:insertCoin(1)
-    game:insertCoin(1)
 end
 
 love.update = function (dt)
