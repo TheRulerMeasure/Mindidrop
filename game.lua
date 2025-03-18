@@ -2,6 +2,32 @@
 
 local gameConst = require "game_const"
 
+local newAnimSprite = require "anim_sprite"
+
+local newBlockerSprite = function (img, cellX, cellY)
+    local x = cellX * gameConst.cellWidth
+    x = x + 26
+    local y = cellY * gameConst.cellHeight
+    y = y + 26
+    return newAnimSprite(img, x, y, {
+        sliceX = 5,
+        sliceY = 1,
+        anims = {
+            ["block_left"] = {
+                minFrame = 1,
+                maxFrame = 5,
+                forward = false,
+                speed = 16,
+            },
+            ["block_right"] = {
+                minFrame = 1,
+                maxFrame = 5,
+                speed = 16,
+            },
+        },
+    })
+end
+
 local newMoveResult = function (result, cellToInsertCoin)
     return {
         result = result,
@@ -27,6 +53,8 @@ local leverLeftSwitch = function (game, x, y)
     game.blockerMap[y][x]         = 0
     game.blockerMap[y][x + 1]     = gameConst.leverRight
     
+    game:BlockerCellLeftBlocked(y - 1, x)
+    
     if game.blockerMap[y - 2][x + 1] == gameConst.blockerCoinRight then
         game.blockerMap[y - 2][x + 1] = 0
         local cellToInsertCoin = { x = x + 1, y = y - 3 }
@@ -40,6 +68,8 @@ local leverRightSwitch = function (game, x, y)
     game.blockerMap[y - 1][x]     = gameConst.blockerRight
     game.blockerMap[y][x - 1]     = gameConst.leverLeft
     game.blockerMap[y][x]         = 0
+    
+    game:BlockerCellLeftUnblocked(y - 1, x - 1)
     
     if game.blockerMap[y - 2][x - 1] == gameConst.blockerCoinLeft then
         game.blockerMap[y - 2][x - 1] = 0
@@ -246,7 +276,16 @@ local keypressed = function (game, key, scancode)
     end
 end
 
-return function ()
+return function (gameAssets)
+    local blockers = {}
+    for i = 1, 4 do
+        local cellX = 5
+        cellX = cellX + (i-1)
+        local cellY = 4
+        table.insert(blockers, {
+            sprite = newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY),
+        })
+    end
     return {
         blockerMap = {
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
