@@ -1,24 +1,32 @@
 -- lever.lua
 
+local gameConst = require "game_const"
+
 local newCellObject = require "cell_object"
 
-local newLeverRight = function (mapData, cellX, cellY, fn)
+local newLeverRight = function (mapData, cellX, cellY, active)
     local lever = newCellObject(mapData, cellX, cellY)
-    lever.fn = fn
+    lever.active = active
     
-    lever.contact = function (this)
-        this.fn("right")
+    lever.draw = function (this)
+        if not this.active then return end
+        love.graphics.setColor(0, 0, 0.6)
+        love.graphics.rectangle("fill", this:getX(), this:getY(), gameConst.cellWidth, gameConst.cellHeight)
     end
+    
     return lever
 end
 
-local newLeverLeft = function (mapData, cellX, cellY, fn)
+local newLeverLeft = function (mapData, cellX, cellY, active)
     local lever = newCellObject(mapData, cellX, cellY)
-    lever.fn = fn
+    lever.active = active
     
-    lever.contact = function (this)
-        this.fn("left")
+    lever.draw = function (this)
+        if not this.active then return end
+        love.graphics.setColor(0.6, 0.6, 0)
+        love.graphics.rectangle("fill", this:getX(), this:getY(), gameConst.cellWidth, gameConst.cellHeight)
     end
+    
     return lever
 end
 
