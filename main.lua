@@ -1,18 +1,24 @@
 -- main.lua
 
-local newCore = require "core"
+local newGame = require "game"
 
-local core = nil
+local game = nil
 
 love.load = function ()
-    core = newCore()
-    core:init()
+    game = newGame({
+        ["blocker_sheet"] = love.graphics.newImage("assets/textures/blocker_sheet.png"),
+    })
+    game:insertCoinFromSlot(2)
 end
 
 love.update = function (dt)
-    core:update(dt)
+    game:update(dt)
 end
 
 love.draw = function ()
-    core:draw()
+    game:draw()
+end
+
+love.keypressed = function (key, scancode)
+    game:keypressed(key, scancode)
 end

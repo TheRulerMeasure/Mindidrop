@@ -9,23 +9,28 @@ local newBlockerSprite = function (img, cellX, cellY)
     x = x + 26
     local y = cellY * gameConst.cellHeight
     y = y + 26
-    return newAnimSprite(img, x, y, {
-        sliceX = 5,
-        sliceY = 1,
-        anims = {
-            ["block_left"] = {
-                minFrame = 1,
-                maxFrame = 5,
-                forward = false,
-                speed = 16,
+    return {
+        sprite = newAnimSprite(img, x, y, {
+            sliceX = 5,
+            sliceY = 1,
+            anims = {
+                ["block_left"] = {
+                    minFrame = 1,
+                    maxFrame = 5,
+                    forward = false,
+                    speed = 16,
+                },
+                ["block_right"] = {
+                    minFrame = 1,
+                    maxFrame = 5,
+                    forward = true,
+                    speed = 16,
+                },
             },
-            ["block_right"] = {
-                minFrame = 1,
-                maxFrame = 5,
-                speed = 16,
-            },
-        },
-    })
+        }),
+        cellX = cellX,
+        cellY = cellY,
+    }
 end
 
 local newMoveResult = function (result, cellToInsertCoin)
@@ -53,7 +58,7 @@ local leverLeftSwitch = function (game, x, y)
     game.blockerMap[y][x]         = 0
     game.blockerMap[y][x + 1]     = gameConst.leverRight
     
-    game:BlockerCellLeftBlocked(y - 1, x)
+    game:setBlockerSpBlockLeft(x, y - 1)
     
     if game.blockerMap[y - 2][x + 1] == gameConst.blockerCoinRight then
         game.blockerMap[y - 2][x + 1] = 0
@@ -69,7 +74,7 @@ local leverRightSwitch = function (game, x, y)
     game.blockerMap[y][x - 1]     = gameConst.leverLeft
     game.blockerMap[y][x]         = 0
     
-    game:BlockerCellLeftUnblocked(y - 1, x - 1)
+    game:setBlockerSpBlockRight(x - 1, y - 1)
     
     if game.blockerMap[y - 2][x - 1] == gameConst.blockerCoinLeft then
         game.blockerMap[y - 2][x - 1] = 0
@@ -216,6 +221,46 @@ local insertCoinFromSlot = function (game, slot)
     game:insertCoin(x, y)
 end
 
+local getBlockerSpriteAtCell = function (game, cellX, cellY)
+    local row
+    if cellY == 4 then
+        row = game.blockerSprites[1]
+    elseif cellY == 8 then
+        row = game.blockerSprites[2]
+    elseif cellY == 12 then
+        row = game.blockerSprites[3]
+    elseif cellY == 16 then
+        row = game.blockerSprites[4]
+    elseif cellY == 20 then
+        row = game.blockerSprites[5]
+    end
+    
+    for i, v in ipairs(row) do
+        if v.cellX == cellX then
+            return v.sprite
+        end
+    end
+    return nil
+end
+
+local setBlockerSpBlockLeft = function (game, cellX, cellY)
+    local sprite = game:getBlockerSpriteAtCell(cellX, cellY)
+    if not sprite then
+        print("Error: blocker sprite does not exist at " .. cellX .. ", " .. cellY)
+        return
+    end
+    sprite:play("block_left")
+end
+
+local setBlockerSpBlockRight = function (game, cellX, cellY)
+    local sprite = game:getBlockerSpriteAtCell(cellX, cellY)
+    if not sprite then
+        print("Error: blocker sprite does not exist at " .. cellX .. ", " .. cellY)
+        return
+    end
+    sprite:play("block_right")
+end
+
 local drawBlocker = function (blockerType, cellX, cellY)
     local x, y
     x = gameConst.boardOffsetX
@@ -255,8 +300,19 @@ local drawCoin = function (coin)
     love.graphics.rectangle("fill", x, y, width, height)
 end
 
+local drawBlockerSpritesRow = function (row)
+    for i, v in ipairs(row) do
+        love.graphics.setColor(1, 1, 1)
+        v.sprite:draw()
+    end
+end
+
 local update = function (game, dt)
-    
+    for i, row in ipairs(game.blockerSprites) do
+        for j, v in ipairs(row) do
+            v.sprite:update(dt)
+        end
+    end
 end
 
 local draw = function (game)
@@ -264,6 +320,9 @@ local draw = function (game)
         for x = 1, gameConst.mapWidth do
             drawBlocker(game.blockerMap[y][x], x, y)
         end
+    end
+    for i, v in ipairs(game.blockerSprites) do
+        drawBlockerSpritesRow(v)
     end
     for i, v in ipairs(game.movingCoins) do
         drawCoin(v)
@@ -277,15 +336,46 @@ local keypressed = function (game, key, scancode)
 end
 
 return function (gameAssets)
-    local blockers = {}
+    local blockersRow1 = {}
     for i = 1, 4 do
         local cellX = 5
         cellX = cellX + (i-1)
         local cellY = 4
-        table.insert(blockers, {
-            sprite = newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY),
-        })
+        table.insert(blockersRow1, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
     end
+    
+    local blockersRow2 = {}
+    for i = 1, 5 do
+        local cellX = 4
+        cellX = cellX + (i-1)
+        local cellY = 8
+        table.insert(blockersRow2, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
+    end
+    
+    local blockersRow3 = {}
+    for i = 1, 6 do
+        local cellX = 3
+        cellX = cellX + (i-1)
+        local cellY = 12
+        table.insert(blockersRow3, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
+    end
+    
+    local blockersRow4 = {}
+    for i = 1, 7 do
+        local cellX = 2
+        cellX = cellX + (i-1)
+        local cellY = 16
+        table.insert(blockersRow4, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
+    end
+    
+    local blockersRow5 = {}
+    for i = 1, 8 do
+        local cellX = 1
+        cellX = cellX + (i-1)
+        local cellY = 20
+        table.insert(blockersRow5, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
+    end
+    
     return {
         blockerMap = {
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -353,6 +443,14 @@ return function (gameAssets)
         
         movingCoins = {},
         
+        blockerSprites = {
+            blockersRow1,
+            blockersRow2,
+            blockersRow3,
+            blockersRow4,
+            blockersRow5,
+        },
+        
         steps = -1,
         
         update = update,
@@ -362,6 +460,11 @@ return function (gameAssets)
         addCoinAtCell = addCoinAtCell,
         insertCoinFromSlot = insertCoinFromSlot,
         insertCoin = insertCoin,
+        
+        getBlockerSpriteAtCell = getBlockerSpriteAtCell,
+        setBlockerSpBlockLeft = setBlockerSpBlockLeft,
+        setBlockerSpBlockRight = setBlockerSpBlockRight,
+        
         coinAllMoveDown = coinAllMoveDown,
         coinMoveDown = coinMoveDown,
         coinMoveAndSetCell = coinMoveAndSetCell,

@@ -1,5 +1,7 @@
 -- core.lua
 
+local gameConst = require "game_const"
+
 local blockerClass = require "blocker"
 local leverClass = require "lever"
 local newMindi = require "mindi"
@@ -7,50 +9,48 @@ local newMindi = require "mindi"
 return function ()
     local core = {}
     core.mapData = {
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
 
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
 
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
 
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
 
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
 
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
 
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
-        { nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
+        { {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, },
     }
-    
-    core.blockers = {}
-    core.mindies = {}
     
     core.update = function (this, dt)
         
     end
     
     core.draw = function (this)
-        for i, v in ipairs(this.blockers) do
-            v:draw()
-        end
-        for i, v in ipairs(this.mindies) do
-            v:draw()
+        for cellY = 1, gameConst.mapHeight do
+            for cellX = 1, gameConst.mapWidth do
+                for i, v in ipairs(this:getObjectsAtCell(cellX, cellY)) do
+                    v:draw()
+                end
+            end
         end
     end
     
@@ -75,44 +75,64 @@ return function ()
     
     core.insertCoin = function (this, cellX, cellY)
         local mindi = newMindi(this.mapData, cellX, cellY)
-        table.insert(this.mindies, mindi)
-        this.mapData[cellY][cellX] = mindi
+        table.insert(this.mapData[cellY][cellX], mindi)
     end
     
     core.insertLeftBlockedBlocker = function (this, cellX, cellY)
         local blockerL = blockerClass.newBlockerLeft(this.mapData, cellX, cellY, true)
-        table.insert(this.blockers, blockerL)
-        this.mapData[cellY][cellX] = blockerL
+        table.insert(this.mapData[cellY][cellX], blockerL)
         
         local blockerR = blockerClass.newBlockerRight(this.mapData, cellX + 1, cellY, false)
-        table.insert(this.blockers, blockerR)
-        this.mapData[cellY][cellX+1] = blockerR
+        table.insert(this.mapData[cellY][cellX], blockerR)
         
         local leverL = leverClass.newLeverLeft(this.mapData, cellX, cellY + 1, false)
-        table.insert(this.blockers, leverL)
-        this.mapData[cellY+1][cellX] = leverL
+        table.insert(this.mapData[cellY][cellX], leverL)
         
         local leverR = leverClass.newLeverRight(this.mapData, cellX + 1, cellY + 1, true)
-        table.insert(this.blockers, leverR)
-        this.mapData[cellY+1][cellX+1] = leverR
+        table.insert(this.mapData[cellY][cellX], leverR)
     end
     
     core.insertRightBlockedBlocker = function (this, cellX, cellY)
         local blockerL = blockerClass.newBlockerLeft(this.mapData, cellX, cellY, false)
-        table.insert(this.blockers, blockerL)
-        this.mapData[cellY][cellX] = blockerL
+        table.insert(this.mapData[cellY][cellX], blockerL)
         
         local blockerR = blockerClass.newBlockerRight(this.mapData, cellX + 1, cellY, true)
-        table.insert(this.blockers, blockerR)
-        this.mapData[cellY][cellX+1] = blockerR
+        table.insert(this.mapData[cellY][cellX], blockerR)
         
         local leverL = leverClass.newLeverLeft(this.mapData, cellX, cellY + 1, true)
-        table.insert(this.blockers, leverL)
-        this.mapData[cellY+1][cellX] = leverL
+        table.insert(this.mapData[cellY][cellX], leverL)
         
         local leverR = leverClass.newLeverRight(this.mapData, cellX + 1, cellY + 1, false)
-        table.insert(this.blockers, leverR)
-        this.mapData[cellY+1][cellX+1] = leverR
+        table.insert(this.mapData[cellY][cellX], leverR)
+    end
+    
+    core.getObjectAllAtCell = function (this, cellX, cellY)
+        return this.mapData[cellY][cellX]
+    end
+    
+    core.getServices = function (this)
+        return {
+            getObjectAllAtCell = function (cellX, cellY) this:getObjectAllAtCell(cellX, cellY) end,
+        }
+    end
+    
+    core.updateAllCellStep = function (this)
+        while true do
+            local wantProcess = false
+            for cellY = 1, gameConst.mapWidth do
+                for cellX = 1, gameConst.mapHeight do
+                    for i, v in ipairs(this:getObjectAllAtCell(cellX, cellY)) do
+                        local queueProcess = v:updateStep(this:getServices())
+                        if queueProcess and (not wantProcess) then
+                            wantProcess = true
+                        end
+                    end
+                end
+            end
+            if not wantProcess then
+                break
+            end
+        end
     end
     
     return core
