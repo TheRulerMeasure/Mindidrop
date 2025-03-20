@@ -7,8 +7,8 @@ local game = nil
 love.load = function ()
     game = newGame({
         ["blocker_sheet"] = love.graphics.newImage("assets/textures/blocker_sheet.png"),
+        ["coin"] = love.graphics.newImage("assets/textures/coin.png")
     })
-    game:insertCoinFromSlot(2)
 end
 
 love.update = function (dt)

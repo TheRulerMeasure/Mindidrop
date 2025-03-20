@@ -6,9 +6,9 @@ local newAnimSprite = require "anim_sprite"
 
 local newBlockerSprite = function (img, cellX, cellY)
     local x = cellX * gameConst.cellWidth
-    x = x + 26
+    x = x + gameConst.boardOffsetX
     local y = cellY * gameConst.cellHeight
-    y = y + 26
+    y = y + gameConst.boardOffsetY
     return {
         sprite = newAnimSprite(img, x, y, {
             sliceX = 5,
@@ -28,9 +28,21 @@ local newBlockerSprite = function (img, cellX, cellY)
                 },
             },
         }),
-        cellX = cellX,
-        cellY = cellY,
+        x = cellX,
+        y = cellY,
     }
+end
+
+local newCoinSprite = function (img, cellX, cellY)
+    local x = cellX * gameConst.cellWidth
+    x = x + gameConst.boardOffsetX
+    local y = cellY * gameConst.cellHeight
+    y = y + gameConst.boardOffsetY
+    local coin = {}
+    coin.sprite = newAnimSprite(img, x, y, { sliceX = 1, sliceY = 1 })
+    coin.x = cellX
+    coin.y = cellY
+    return coin
 end
 
 local newMoveResult = function (result, cellToInsertCoin)
@@ -209,7 +221,8 @@ end
 local insertCoin = function (game, cellX, cellY)
     local x = math.floor(cellX)
     local y = math.floor(cellY)
-    table.insert(game.movingCoins, { x = x, y = y })
+    local coin = newCoinSprite(game.coinAsset, x, y)
+    table.insert(game.movingCoins, coin)
     game:addCoinAtCell(x, y, 1)
 end
 
@@ -236,7 +249,7 @@ local getBlockerSpriteAtCell = function (game, cellX, cellY)
     end
     
     for i, v in ipairs(row) do
-        if v.cellX == cellX then
+        if v.x == cellX then
             return v.sprite
         end
     end
@@ -290,14 +303,10 @@ local drawBlocker = function (blockerType, cellX, cellY)
 end
 
 local drawCoin = function (coin)
-    local width, height = gameConst.cellWidth, gameConst.cellHeight
-    local x, y
-    x = gameConst.boardOffsetX
-    x = x + (coin.x-1) * width
-    y = gameConst.boardOffsetY
-    y = y + (coin.y-1) * height
-    love.graphics.setColor(1, 1, 0)
-    love.graphics.rectangle("fill", x, y, width, height)
+    love.graphics.setColor(1, 1, 1)
+    coin.sprite.x = gameConst.boardOffsetX + coin.x * gameConst.cellWidth - 13
+    coin.sprite.y = gameConst.boardOffsetY + coin.y * gameConst.cellHeight - 13
+    coin.sprite:draw()
 end
 
 local drawBlockerSpritesRow = function (row)
@@ -331,6 +340,10 @@ end
 
 local keypressed = function (game, key, scancode)
     if scancode == 's' then
+        game.steps = game.steps + 1
+        if game.steps % 5 == 0 then
+            game:insertCoinFromSlot(1)
+        end
         game:coinAllMoveDown()
     end
 end
@@ -339,7 +352,7 @@ return function (gameAssets)
     local blockersRow1 = {}
     for i = 1, 4 do
         local cellX = 5
-        cellX = cellX + (i-1)
+        cellX = cellX + (i-1) * 2
         local cellY = 4
         table.insert(blockersRow1, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
     end
@@ -347,7 +360,7 @@ return function (gameAssets)
     local blockersRow2 = {}
     for i = 1, 5 do
         local cellX = 4
-        cellX = cellX + (i-1)
+        cellX = cellX + (i-1) * 2
         local cellY = 8
         table.insert(blockersRow2, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
     end
@@ -355,7 +368,7 @@ return function (gameAssets)
     local blockersRow3 = {}
     for i = 1, 6 do
         local cellX = 3
-        cellX = cellX + (i-1)
+        cellX = cellX + (i-1) * 2
         local cellY = 12
         table.insert(blockersRow3, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
     end
@@ -363,7 +376,7 @@ return function (gameAssets)
     local blockersRow4 = {}
     for i = 1, 7 do
         local cellX = 2
-        cellX = cellX + (i-1)
+        cellX = cellX + (i-1) * 2
         local cellY = 16
         table.insert(blockersRow4, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
     end
@@ -371,7 +384,7 @@ return function (gameAssets)
     local blockersRow5 = {}
     for i = 1, 8 do
         local cellX = 1
-        cellX = cellX + (i-1)
+        cellX = cellX + (i-1) * 2
         local cellY = 20
         table.insert(blockersRow5, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
     end
@@ -382,28 +395,28 @@ return function (gameAssets)
 
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-            { 0, 0, 0, 0, 1, 0, 0, 2, 1, 0, 0, 2, 0, 0, 0, 0, },
-            { 0, 0, 0, 0, 0, 4, 3, 0, 0, 4, 3, 0, 0, 0, 0, 0, },
+            { 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, },
+            { 0, 0, 0, 0, 0, 4, 0, 4, 0, 4, 0, 4, 0, 0, 0, 0, },
 
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-            { 0, 0, 0, 0, 2, 1, 0, 0, 2, 1, 0, 0, 2, 0, 0, 0, },
-            { 0, 0, 0, 3, 0, 0, 4, 3, 0, 0, 4, 3, 0, 0, 0, 0, },
+            { 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, },
+            { 0, 0, 0, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 0, 0, },
 
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-            { 0, 0, 1, 0, 0, 2, 1, 0, 0, 2, 1, 0, 0, 2, 0, 0, },
-            { 0, 0, 0, 4, 3, 0, 0, 4, 3, 0, 0, 4, 3, 0, 0, 0, },
+            { 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0, },
+            { 0, 0, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 0, },
 
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-            { 0, 0, 2, 1, 0, 0, 2, 1, 0, 0, 2, 1, 0, 0, 2, 0, },
-            { 0, 3, 0, 0, 4, 3, 0, 0, 4, 3, 0, 0, 4, 3, 0, 0, },
+            { 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, },
+            { 0, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, },
 
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
-            { 1, 0, 0, 2, 1, 0, 0, 2, 1, 0, 0, 2, 1, 0, 0, 2, },
-            { 0, 4, 3, 0, 0, 4, 3, 0, 0, 4, 3, 0, 0, 4, 3, 0, },
+            { 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, },
+            { 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, 0, 4, },
 
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
@@ -452,6 +465,8 @@ return function (gameAssets)
         },
         
         steps = -1,
+        
+        coinAsset = gameAssets["coin"],
         
         update = update,
         draw = draw,
