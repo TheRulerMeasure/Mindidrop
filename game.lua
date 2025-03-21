@@ -1,6 +1,7 @@
 -- game.lua
 
 local gameConst = require "game_const"
+local gameStates = require "game_states"
 
 local newAnimSprite = require "anim_sprite"
 
@@ -43,6 +44,28 @@ local newCoinSprite = function (img, cellX, cellY)
     coin.x = cellX
     coin.y = cellY
     return coin
+end
+
+local newArrowSprite = function (img, slot)
+    local x = slot + 4
+    x = x * gameConst.cellWidth
+    x = x + gameConst.boardOffsetX
+    x = x - 12
+    local y = gameConst.boardOffsetY
+    local sprite = newAnimSprite(img, x, y, {
+        sliceX = 2,
+        sliceY = 1,
+        anims = {
+            ["dance"] = {
+                minFrame = 1,
+                maxFrame = 2,
+                forward = true,
+                speed = 15,
+            },
+        },
+    })
+    sprite:play("dance")
+    return sprite
 end
 
 local newMoveResult = function (result, cellToInsertCoin)
@@ -94,6 +117,19 @@ local leverRightSwitch = function (game, x, y)
         return cellToInsertCoin
     end
     return nil
+end
+
+local moveInsertSlot = function (game, dx)
+    local dx2 = math.min(math.max(dx or 1, -1), 1)
+    dx2 = math.floor(dx2)
+    local slot = game.curInsertSlot
+    slot = slot + dx2
+    slot = math.min(math.max(slot, 1), 8)
+    game.curInsertSlot = slot
+    local x = (game.curInsertSlot + 4) * gameConst.cellWidth
+    x = x + gameConst.boardOffsetX
+    game.arrowSprite.x = x - 12
+    game.arrowSprite:play("dance")
 end
 
 local scoredAtSlot = function (game, slot)
@@ -216,6 +252,7 @@ local coinAllMoveDown = function (game)
     end
     -- debug
     -- game:debugPrintCoinMap()
+    return #game.movingCoins > 0
 end
 
 local insertCoin = function (game, cellX, cellY)
@@ -274,38 +311,44 @@ local setBlockerSpBlockRight = function (game, cellX, cellY)
     sprite:play("block_right")
 end
 
-local drawBlocker = function (blockerType, cellX, cellY)
+local updateWaiting = function (game, dt)
+    if #game.movingCoins > 0 then
+        return gameStates.stepping
+    end
+    return gameStates.waiting
+end
+
+local updateStepping = function (game, dt)
+    game.stepDelay = game.stepDelay + dt
+    local queueNextProcess = false
+    if game.stepDelay >= game.maxDelayBeforeNextStep then
+        game.stepDelay = 0
+        queueNextProcess = game:coinAllMoveDown()
+    end
+    if not queueNextProcess then
+        return gameStates.waiting
+    end
+    return gameStates.stepping
+end
+
+local drawBlocker = function (blockerType, cellX, cellY, coinAsset)
+    if blockerType ~= gameConst.blockerCoinLeft and blockerType ~= gameConst.blockerCoinRight then
+        return
+    end
     local x, y
     x = gameConst.boardOffsetX
     x = x + (cellX-1) * gameConst.cellWidth
     y = gameConst.boardOffsetY
     y = y + (cellY-1) * gameConst.cellHeight
 
-    if blockerType <= 0 then
-        return
-    end
-
-    if blockerType == gameConst.blockerLeft then
-        love.graphics.setColor(0.5, 0.1, 0.1)
-    elseif blockerType == gameConst.blockerRight then
-        love.graphics.setColor(0.1, 0.5, 0.1)
-    elseif blockerType == gameConst.leverLeft then
-        love.graphics.setColor(0.1, 0.1, 0.5)
-    elseif blockerType == gameConst.leverRight then
-        love.graphics.setColor(0.5, 0.1, 0.5)
-    elseif blockerType == gameConst.blockerCoinLeft then
-        love.graphics.setColor(0.4, 0.4, 0.4)
-    elseif blockerType == gameConst.blockerCoinRight then
-        love.graphics.setColor(0.8, 0.8, 0.8)
-    end
-
-    love.graphics.rectangle("fill", x, y, gameConst.cellWidth, gameConst.cellHeight)
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.draw(coinAsset, x, y)
 end
 
 local drawCoin = function (coin)
     love.graphics.setColor(1, 1, 1)
-    coin.sprite.x = gameConst.boardOffsetX + coin.x * gameConst.cellWidth - 13
-    coin.sprite.y = gameConst.boardOffsetY + coin.y * gameConst.cellHeight - 13
+    coin.sprite.x = gameConst.boardOffsetX + coin.x * gameConst.cellWidth - 12
+    coin.sprite.y = gameConst.boardOffsetY + coin.y * gameConst.cellHeight - 12
     coin.sprite:draw()
 end
 
@@ -317,6 +360,15 @@ local drawBlockerSpritesRow = function (row)
 end
 
 local update = function (game, dt)
+    local newState
+    if game.curState == gameStates.stepping then
+        newState = game:updateStepping(dt)
+    else -- gameStates.waiting
+        newState = game:updateWaiting(dt)
+    end
+    game.curState = newState
+
+    game.arrowSprite:update(dt)
     for i, row in ipairs(game.blockerSprites) do
         for j, v in ipairs(row) do
             v.sprite:update(dt)
@@ -327,7 +379,7 @@ end
 local draw = function (game)
     for y = 1, gameConst.mapHeight do
         for x = 1, gameConst.mapWidth do
-            drawBlocker(game.blockerMap[y][x], x, y)
+            drawBlocker(game.blockerMap[y][x], x, y, game.coinAsset)
         end
     end
     for i, v in ipairs(game.blockerSprites) do
@@ -336,15 +388,23 @@ local draw = function (game)
     for i, v in ipairs(game.movingCoins) do
         drawCoin(v)
     end
+    game.arrowSprite:draw()
 end
 
 local keypressed = function (game, key, scancode)
-    if scancode == 's' then
-        game.steps = game.steps + 1
-        if game.steps % 5 == 0 then
-            game:insertCoinFromSlot(1)
+    if scancode == 'a' or scancode == "left" then
+        game:moveInsertSlot(-1)
+        return
+    end
+    if scancode == 'd' or scancode == "right" then
+        game:moveInsertSlot(1)
+        return
+    end
+    if key == "space" or scancode == "return" then
+        if #game.movingCoins <= 0 then
+            game:insertCoinFromSlot(game.curInsertSlot)
+            -- game.curState = gameStates.stepping
         end
-        game:coinAllMoveDown()
     end
 end
 
@@ -464,13 +524,26 @@ return function (gameAssets)
             blockersRow5,
         },
         
-        steps = -1,
+        curInsertSlot = 1,
+        
+        arrowSprite = newArrowSprite(gameAssets["insert_arrow_sheet"], 1),
+        
+        curState = gameStates.waiting,
+        
+        maxDelayBeforeNextStep = 0.06,
+        
+        stepDelay = 0.0,
         
         coinAsset = gameAssets["coin"],
         
         update = update,
         draw = draw,
         keypressed = keypressed,
+        
+        updateWaiting = updateWaiting,
+        updateStepping = updateStepping,
+        
+        moveInsertSlot = moveInsertSlot,
         
         addCoinAtCell = addCoinAtCell,
         insertCoinFromSlot = insertCoinFromSlot,
