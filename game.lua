@@ -317,7 +317,7 @@ local updateWaiting = function (game, dt)
     end
     return gameStates.waiting
 end
-
+--[[
 local updateStepping = function (game, dt)
     game.stepDelay = game.stepDelay + dt
     local queueNextProcess = false
@@ -330,7 +330,7 @@ local updateStepping = function (game, dt)
     end
     return gameStates.stepping
 end
-
+]]
 local drawBlocker = function (blockerType, cellX, cellY, coinAsset)
     if blockerType ~= gameConst.blockerCoinLeft and blockerType ~= gameConst.blockerCoinRight then
         return
@@ -361,10 +361,29 @@ end
 
 local update = function (game, dt)
     local newState
-    if game.curState == gameStates.stepping then
-        newState = game:updateStepping(dt)
-    else -- gameStates.waiting
-        newState = game:updateWaiting(dt)
+    if game.curState == gameStates.p1Waiting then
+        newState = game:updateP1Waiting(dt)
+
+    elseif game.curState == gameStates.p1Stepping then
+        newState = game:updateP1Stepping(dt)
+
+    elseif game.curState == gameStates.p1Ending then
+        newState = game:updateP1Ending(dt)
+
+    elseif game.curState == gameStates.p2Waiting then
+        newState = game:updateP2Waiting(dt)
+
+    elseif game.curState == gameStates.p2Stepping then
+        newState = game:updateP2Stepping(dt)
+
+    elseif game.curState == gameStates.p2Ending then
+        newState = game:updateP2Ending(dt)
+
+    elseif game.curState == gameState.concluding then
+        newState = game:updateConcluding(dt)
+
+    else -- gameStates.beginning
+        newState = game:updateBeginning(dt)
     end
     game.curState = newState
 
@@ -377,6 +396,11 @@ local update = function (game, dt)
 end
 
 local draw = function (game)
+    local boardX, boardY
+    boardX = gameConst.boardOffsetX - 24
+    boardY = gameConst.boardOffsetY - 24
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.draw(game.boardSprite.back, boardX, boardY)
     for y = 1, gameConst.mapHeight do
         for x = 1, gameConst.mapWidth do
             drawBlocker(game.blockerMap[y][x], x, y, game.coinAsset)
@@ -388,6 +412,8 @@ local draw = function (game)
     for i, v in ipairs(game.movingCoins) do
         drawCoin(v)
     end
+    love.graphics.setColor(1, 1, 1)
+    love.graphics.draw(game.boardSprite.front, boardX, boardY)
     game.arrowSprite:draw()
 end
 
@@ -403,7 +429,6 @@ local keypressed = function (game, key, scancode)
     if key == "space" or scancode == "return" then
         if #game.movingCoins <= 0 then
             game:insertCoinFromSlot(game.curInsertSlot)
-            -- game.curState = gameStates.stepping
         end
     end
 end
@@ -524,17 +549,33 @@ return function (gameAssets)
             blockersRow5,
         },
         
+        player1 = {
+            scores = 0,
+        },
+        
+        player2 = {
+            scores = 0,
+        },
+        
         curInsertSlot = 1,
+        
+        scoreMulSlots = {
+            { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, },
+        },
         
         arrowSprite = newArrowSprite(gameAssets["insert_arrow_sheet"], 1),
         
-        curState = gameStates.waiting,
+        curState = gameStates.beginning,
         
         maxDelayBeforeNextStep = 0.06,
         
         stepDelay = 0.0,
         
         coinAsset = gameAssets["coin"],
+        boardSprite = {
+            back = gameAssets["board_back"],
+            front = gameAssets["board_front"],
+        },
         
         update = update,
         draw = draw,
