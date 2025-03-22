@@ -7,6 +7,8 @@ local gameStateProcs = require "game_state_processors"
 
 local newAnimSprite = require "anim_sprite"
 
+local newPlayerBox = require "player_box"
+
 local newBlockerSprite = function (img, cellX, cellY)
     local x = cellX * gameConst.cellWidth
     x = x + gameConst.boardOffsetX
@@ -143,9 +145,12 @@ end
 local scoredAtSlot = function (game, slot)
     local amount = game.scoreMulSlots[slot]
     game.players[game.curPlayerIndex].scores = game.players[game.curPlayerIndex].scores + amount
+    game.playerBoxes[game.curPlayerIndex]:setProgress(game.players[game.curPlayerIndex].scores)
+    --[[
     for i, v in ipairs(game.players) do
         print("player" .. i .. " scores = " .. v.scores)
     end
+    ]]
 end
 
 local addCoinAtCell = function (game, cellX, cellY, amount)
@@ -352,7 +357,7 @@ local drawBlockerSpritesRow = function (row)
 end
 
 local drawScoreLabels = function (scores)
-    love.graphics.setColor(love.math.colorFromBytes(181, 152, 85))
+    love.graphics.setColor(0.12, 0.12, 0.11)
     for i, v in ipairs(scores) do
         local x, y
         x = gameConst.boardOffsetX + (i-1) * gameConst.cellWidth
@@ -394,6 +399,9 @@ local draw = function (game)
     love.graphics.setColor(1, 1, 1)
     love.graphics.draw(game.boardSprite.front, boardX, boardY)
     game.arrowSprite:draw()
+    for i, v in ipairs(game.playerBoxes) do
+        v:draw()
+    end
     drawScoreLabels(game.scoreMulSlots)
     if #game.stateLabel > 0 then
         love.graphics.setColor(0.1, 0.1, 0.1)
@@ -548,6 +556,21 @@ return function (gameAssets)
                 scores = 0,
                 victories = 0,
             },
+        },
+        
+        playerBoxes = {
+            newPlayerBox(gameAssets["bubv_sheet"],
+                            gameAssets["mindi_tower_sheet"],
+                            gameAssets["mindi_pgbar_bg"],
+                            gameAssets["mindi_pgbar_over"],
+                            gameConst.windowWidth * 0.2 - 32, 60,
+                            1),
+            newPlayerBox(gameAssets["bubv_sheet"],
+                            gameAssets["mindi_tower_sheet"],
+                            gameAssets["mindi_pgbar_bg"],
+                            gameAssets["mindi_pgbar_over"],
+                            gameConst.windowWidth * 0.8 - 32, 60,
+                            2),
         },
         
         curPlayerIndex = 1,

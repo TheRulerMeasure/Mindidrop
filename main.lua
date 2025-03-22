@@ -14,6 +14,10 @@ love.load = function ()
         ["insert_arrow_sheet"] = love.graphics.newImage("assets/textures/insert_arrow_sheet.png"),
         ["board_front"] = love.graphics.newImage("assets/textures/board_front.png"),
         ["board_back"] = love.graphics.newImage("assets/textures/board_back.png"),
+        ["bubv_sheet"] = love.graphics.newImage("assets/textures/bubv_sheet.png"),
+        ["mindi_tower_sheet"] = love.graphics.newImage("assets/textures/mindi_tower_sheet.png"),
+        ["mindi_pgbar_bg"] = love.graphics.newImage("assets/textures/mindi_progbar_background.png"),
+        ["mindi_pgbar_over"] = love.graphics.newImage("assets/textures/mindi_progbar_over.png"),
     })
 end
 

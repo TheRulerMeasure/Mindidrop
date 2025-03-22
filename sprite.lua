@@ -26,6 +26,8 @@ local newSprite = function (img, x, y, spOpt)
     return {
         x = x or 0,
         y = y or 0,
+        sx = 1,
+        sy = 1,
         frame = 1,
         img = img,
         quads = quads,

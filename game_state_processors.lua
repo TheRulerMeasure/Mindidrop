@@ -13,6 +13,10 @@ local updateBeginning = function (game, dt)
     game.stepDelay = 0
     if game.shuffledBlockerAmount > gameConst.blockersAmount then
         game.stateLabel = "Player" .. game.curPlayerIndex .. "'s turn. [Left/Right] [Down]"
+        for i, v in ipairs(game.playerBoxes) do
+            v.maxProgress = gameConst.maxRoundScores[game.curRoundIndex]
+            v:setProgress(0)
+        end
         return gameStates.playerWaiting
     end
     local coord = gameConst.blockerCoords[game.shuffledBlockerAmount]
@@ -91,6 +95,10 @@ local updateGoingToNewRound = function (game, dt)
         game.stateLabel = "Player" .. game.curPlayerIndex .. "'s turn. [Left/Right] [Down]"
         for i, v in ipairs(game.players) do
             v.scores = 0
+        end
+        for i, v in ipairs(game.playerBoxes) do
+            v.maxProgress = gameConst.maxRoundScores[game.curRoundIndex]
+            v:setProgress(0)
         end
         return gameStates.playerWaiting
     end
