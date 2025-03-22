@@ -2,11 +2,9 @@
 
 return {
     beginning = 1,
-    p1Waiting = 2,
-    p1Stepping = 3,
-    p1Ending = 4,
-    p2Waiting = 5,
-    p2Stepping = 6,
-    p2Ending = 7,
-    concluding = 8,
+    playerWaiting = 2,
+    playerStepping = 3,
+    playerEnding = 4,
+    goingToNewRound = 5,
+    concluding = 6,
 }

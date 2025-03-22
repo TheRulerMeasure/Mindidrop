@@ -3,6 +3,8 @@
 local gameConst = require "game_const"
 local gameStates = require "game_states"
 
+local gameStateProcs = require "game_state_processors"
+
 local newAnimSprite = require "anim_sprite"
 
 local newBlockerSprite = function (img, cellX, cellY)
@@ -87,13 +89,24 @@ local debugPrintCoinMap = function (game)
     print("----coin map-----")
 end
 
-local leverLeftSwitch = function (game, x, y)
-    game.blockerMap[y - 1][x]     = gameConst.blockerLeft
-    game.blockerMap[y - 1][x + 1] = 0
+local blockerBlockLeft = function (game, x, y)
+    game.blockerMap[y][x]         = gameConst.blockerLeft
+    game.blockerMap[y][x + 1]     = 0
+    game.blockerMap[y + 1][x]     = 0
+    game.blockerMap[y + 1][x + 1] = gameConst.leverRight
+    game:setBlockerSpBlockLeft(x, y)
+end
+
+local blockerBlockRight = function (game, x, y)
     game.blockerMap[y][x]         = 0
-    game.blockerMap[y][x + 1]     = gameConst.leverRight
-    
-    game:setBlockerSpBlockLeft(x, y - 1)
+    game.blockerMap[y][x + 1]     = gameConst.blockerRight
+    game.blockerMap[y + 1][x]     = gameConst.leverLeft
+    game.blockerMap[y + 1][x + 1] = 0
+    game:setBlockerSpBlockRight(x, y)
+end
+
+local leverLeftSwitch = function (game, x, y)
+    game:blockerBlockLeft(x, y - 1)
     
     if game.blockerMap[y - 2][x + 1] == gameConst.blockerCoinRight then
         game.blockerMap[y - 2][x + 1] = 0
@@ -104,12 +117,7 @@ local leverLeftSwitch = function (game, x, y)
 end
 
 local leverRightSwitch = function (game, x, y)
-    game.blockerMap[y - 1][x - 1] = 0
-    game.blockerMap[y - 1][x]     = gameConst.blockerRight
-    game.blockerMap[y][x - 1]     = gameConst.leverLeft
-    game.blockerMap[y][x]         = 0
-    
-    game:setBlockerSpBlockRight(x - 1, y - 1)
+    game:blockerBlockRight(x - 1, y - 1)
     
     if game.blockerMap[y - 2][x - 1] == gameConst.blockerCoinLeft then
         game.blockerMap[y - 2][x - 1] = 0
@@ -133,7 +141,11 @@ local moveInsertSlot = function (game, dx)
 end
 
 local scoredAtSlot = function (game, slot)
-    print("scored at slot " .. slot)
+    local amount = game.scoreMulSlots[slot]
+    game.players[game.curPlayerIndex].scores = game.players[game.curPlayerIndex].scores + amount
+    for i, v in ipairs(game.players) do
+        print("player" .. i .. " scores = " .. v.scores)
+    end
 end
 
 local addCoinAtCell = function (game, cellX, cellY, amount)
@@ -311,26 +323,6 @@ local setBlockerSpBlockRight = function (game, cellX, cellY)
     sprite:play("block_right")
 end
 
-local updateWaiting = function (game, dt)
-    if #game.movingCoins > 0 then
-        return gameStates.stepping
-    end
-    return gameStates.waiting
-end
---[[
-local updateStepping = function (game, dt)
-    game.stepDelay = game.stepDelay + dt
-    local queueNextProcess = false
-    if game.stepDelay >= game.maxDelayBeforeNextStep then
-        game.stepDelay = 0
-        queueNextProcess = game:coinAllMoveDown()
-    end
-    if not queueNextProcess then
-        return gameStates.waiting
-    end
-    return gameStates.stepping
-end
-]]
 local drawBlocker = function (blockerType, cellX, cellY, coinAsset)
     if blockerType ~= gameConst.blockerCoinLeft and blockerType ~= gameConst.blockerCoinRight then
         return
@@ -359,32 +351,19 @@ local drawBlockerSpritesRow = function (row)
     end
 end
 
-local update = function (game, dt)
-    local newState
-    if game.curState == gameStates.p1Waiting then
-        newState = game:updateP1Waiting(dt)
-
-    elseif game.curState == gameStates.p1Stepping then
-        newState = game:updateP1Stepping(dt)
-
-    elseif game.curState == gameStates.p1Ending then
-        newState = game:updateP1Ending(dt)
-
-    elseif game.curState == gameStates.p2Waiting then
-        newState = game:updateP2Waiting(dt)
-
-    elseif game.curState == gameStates.p2Stepping then
-        newState = game:updateP2Stepping(dt)
-
-    elseif game.curState == gameStates.p2Ending then
-        newState = game:updateP2Ending(dt)
-
-    elseif game.curState == gameState.concluding then
-        newState = game:updateConcluding(dt)
-
-    else -- gameStates.beginning
-        newState = game:updateBeginning(dt)
+local drawScoreLabels = function (scores)
+    love.graphics.setColor(love.math.colorFromBytes(181, 152, 85))
+    for i, v in ipairs(scores) do
+        local x, y
+        x = gameConst.boardOffsetX + (i-1) * gameConst.cellWidth
+        x = x + 6
+        y = gameConst.boardOffsetY + gameConst.cellHeight * gameConst.mapHeight
+        love.graphics.print(tostring(v), x, y)
     end
+end
+
+local update = function (game, dt)
+    local newState = gameStateProcs(game, dt)
     game.curState = newState
 
     game.arrowSprite:update(dt)
@@ -415,6 +394,13 @@ local draw = function (game)
     love.graphics.setColor(1, 1, 1)
     love.graphics.draw(game.boardSprite.front, boardX, boardY)
     game.arrowSprite:draw()
+    drawScoreLabels(game.scoreMulSlots)
+    if #game.stateLabel > 0 then
+        love.graphics.setColor(0.1, 0.1, 0.1)
+        local labelX = gameConst.windowWidth * 0.5
+        labelX = labelX - #game.stateLabel * 4
+        love.graphics.print(game.stateLabel, labelX, 10)
+    end
 end
 
 local keypressed = function (game, key, scancode)
@@ -426,9 +412,11 @@ local keypressed = function (game, key, scancode)
         game:moveInsertSlot(1)
         return
     end
-    if key == "space" or scancode == "return" then
-        if #game.movingCoins <= 0 then
-            game:insertCoinFromSlot(game.curInsertSlot)
+    if scancode == 'down' or key == "space" or scancode == "return" or scancode == 's' then
+        if #game.movingCoins <= 0 and game.curState == gameStates.playerWaiting then
+            if not game.players[game.curPlayerIndex].isCPU then
+                game:insertCoinFromSlot(game.curInsertSlot)
+            end
         end
     end
 end
@@ -549,27 +537,39 @@ return function (gameAssets)
             blockersRow5,
         },
         
-        player1 = {
-            scores = 0,
+        players = {
+            {
+                isCPU = false,
+                scores = 0,
+                victories = 0,
+            },
+            {
+                isCPU = true,
+                scores = 0,
+                victories = 0,
+            },
         },
         
-        player2 = {
-            scores = 0,
-        },
+        curPlayerIndex = 1,
         
         curInsertSlot = 1,
         
-        scoreMulSlots = {
-            { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, },
-        },
+        scoreMulSlots = { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, },
+        
+        curRoundIndex = 1,
         
         arrowSprite = newArrowSprite(gameAssets["insert_arrow_sheet"], 1),
         
         curState = gameStates.beginning,
         
+        stateLabel = "",
+        
         maxDelayBeforeNextStep = 0.06,
+        maxDelayBeforeNextShuffle = 0.07,
         
         stepDelay = 0.0,
+        
+        shuffledBlockerAmount = 0,
         
         coinAsset = gameAssets["coin"],
         boardSprite = {
@@ -580,9 +580,6 @@ return function (gameAssets)
         update = update,
         draw = draw,
         keypressed = keypressed,
-        
-        updateWaiting = updateWaiting,
-        updateStepping = updateStepping,
         
         moveInsertSlot = moveInsertSlot,
         
@@ -601,8 +598,12 @@ return function (gameAssets)
         handleBlockerCell = handleBlockerCell,
         handleBlockerCoinCell = handleBlockerCoinCell,
         handleLeverCell = handleLeverCell,
+        
+        blockerBlockLeft = blockerBlockLeft,
+        blockerBlockRight = blockerBlockRight,
         leverLeftSwitch = leverLeftSwitch,
         leverRightSwitch = leverRightSwitch,
+        
         scoredAtSlot = scoredAtSlot,
         
         debugPrintCoinMap = debugPrintCoinMap,
