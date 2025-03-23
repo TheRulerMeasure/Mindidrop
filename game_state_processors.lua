@@ -17,6 +17,7 @@ local updateBeginning = function (game, dt)
             v.maxProgress = gameConst.maxRoundScores[game.curRoundIndex]
             v:setProgress(0)
         end
+        game.centerLabel:displayLabel(1)
         return gameStates.playerWaiting
     end
     local coord = gameConst.blockerCoords[game.shuffledBlockerAmount]
@@ -66,13 +67,14 @@ local updatePlayerEnding = function (game, dt)
     local plScores = game.players[game.curPlayerIndex].scores
     local maxScores = gameConst.maxRoundScores[game.curRoundIndex]
     if plScores >= maxScores then
-        game.players[game.curPlayerIndex].victories = game.players[game.curPlayerIndex].victories + 1
-        if game.players[game.curPlayerIndex].victories > 1 then
-            game.stateLabel = "Game Over. Player" .. game.curPlayerIndex .. " wins!"
+        if game.curRoundIndex >= gameConst.maxRounds then
+            game.stateLabel = "Game Over."
             return gameStates.concluding
         end
         game.curRoundIndex = game.curRoundIndex + 1
+        game.centerLabel:displayLabel(game.curRoundIndex)
         game.stateLabel = "Going to Round " .. game.curRoundIndex .. "!"
+        -- game.updatedScoreMulAmount = 0
         return gameStates.goingToNewRound
     end
     game.curPlayerIndex = game.curPlayerIndex + 1
@@ -84,10 +86,14 @@ local updatePlayerEnding = function (game, dt)
 end
 
 local updateGoingToNewRound = function (game, dt)
-    game.stepDelay = game.stepDelay + 5 * dt
-    local index = math.floor(game.stepDelay)
-    if index > gameConst.mapWidth then
-        game.stepDelay = 0
+    game.stepDelay = game.stepDelay + dt
+    if game.stepDelay <= 0.2 then
+        return gameStates.goingToNewRound
+    end
+    game.stepDelay = 0
+    game.updatedScoreMulAmount = game.updatedScoreMulAmount + 1
+    if game.updatedScoreMulAmount > gameConst.mapWidth then
+        game.updatedScoreMulAmount = 0
         game.curPlayerIndex = game.curPlayerIndex + 1
         if game.curPlayerIndex > gameConst.maxPlayersCount then
             game.curPlayerIndex = 1
@@ -102,8 +108,8 @@ local updateGoingToNewRound = function (game, dt)
         end
         return gameStates.playerWaiting
     end
-    local slots = gameConst.roundScoreMulSlots[game.curRoundIndex]
-    game.scoreMulSlots[index] = slots[index]
+    local scoreMul = gameConst.roundScoreMulSlots[game.curRoundIndex][game.updatedScoreMulAmount]
+    game.scoreMulSlots[game.updatedScoreMulAmount]:setNum(scoreMul)
     return gameStates.goingToNewRound
 end
 

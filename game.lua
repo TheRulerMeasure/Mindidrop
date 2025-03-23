@@ -8,6 +8,8 @@ local gameStateProcs = require "game_state_processors"
 local newAnimSprite = require "anim_sprite"
 
 local newPlayerBox = require "player_box"
+local newExpldNum = require "exploding_num"
+local centerLabelClass = require "center_label"
 
 local newBlockerSprite = function (img, cellX, cellY)
     local x = cellX * gameConst.cellWidth
@@ -143,14 +145,9 @@ local moveInsertSlot = function (game, dx)
 end
 
 local scoredAtSlot = function (game, slot)
-    local amount = game.scoreMulSlots[slot]
+    local amount = game.scoreMulSlots[slot].number
     game.players[game.curPlayerIndex].scores = game.players[game.curPlayerIndex].scores + amount
     game.playerBoxes[game.curPlayerIndex]:setProgress(game.players[game.curPlayerIndex].scores)
-    --[[
-    for i, v in ipairs(game.players) do
-        print("player" .. i .. " scores = " .. v.scores)
-    end
-    ]]
 end
 
 local addCoinAtCell = function (game, cellX, cellY, amount)
@@ -356,26 +353,19 @@ local drawBlockerSpritesRow = function (row)
     end
 end
 
-local drawScoreLabels = function (scores)
-    love.graphics.setColor(0.12, 0.12, 0.11)
-    for i, v in ipairs(scores) do
-        local x, y
-        x = gameConst.boardOffsetX + (i-1) * gameConst.cellWidth
-        x = x + 6
-        y = gameConst.boardOffsetY + gameConst.cellHeight * gameConst.mapHeight
-        love.graphics.print(tostring(v), x, y)
-    end
-end
-
 local update = function (game, dt)
     local newState = gameStateProcs(game, dt)
     game.curState = newState
 
     game.arrowSprite:update(dt)
+    game.centerLabel:update(dt)
     for i, row in ipairs(game.blockerSprites) do
         for j, v in ipairs(row) do
             v.sprite:update(dt)
         end
+    end
+    for i, v in ipairs(game.scoreMulSlots) do
+        v:update(dt)
     end
 end
 
@@ -399,10 +389,13 @@ local draw = function (game)
     love.graphics.setColor(1, 1, 1)
     love.graphics.draw(game.boardSprite.front, boardX, boardY)
     game.arrowSprite:draw()
+    game.centerLabel:draw()
     for i, v in ipairs(game.playerBoxes) do
         v:draw()
     end
-    drawScoreLabels(game.scoreMulSlots)
+    for i, v in ipairs(game.scoreMulSlots) do
+        v:draw()
+    end
     if #game.stateLabel > 0 then
         love.graphics.setColor(0.1, 0.1, 0.1)
         local labelX = gameConst.windowWidth * 0.5
@@ -468,6 +461,15 @@ return function (gameAssets)
         cellX = cellX + (i-1) * 2
         local cellY = 20
         table.insert(blockersRow5, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
+    end
+    
+    local scoreMulSlots = {}
+    for i = 1, gameConst.mapWidth do
+        local coordX, coordY
+        coordX = (i-1) * gameConst.cellWidth
+        coordX = coordX + gameConst.boardOffsetX + 10
+        coordY = gameConst.boardOffsetY + gameConst.cellHeight * gameConst.mapHeight + 8
+        table.insert(scoreMulSlots, newExpldNum(gameAssets["boom_sheet"], coordX, coordY))
     end
     
     return {
@@ -545,6 +547,8 @@ return function (gameAssets)
             blockersRow5,
         },
         
+        centerLabel = centerLabelClass.new(gameAssets["label_sheet"]),
+        
         players = {
             {
                 isCPU = false,
@@ -577,7 +581,7 @@ return function (gameAssets)
         
         curInsertSlot = 1,
         
-        scoreMulSlots = { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, },
+        scoreMulSlots = scoreMulSlots,
         
         curRoundIndex = 1,
         
@@ -593,6 +597,8 @@ return function (gameAssets)
         stepDelay = 0.0,
         
         shuffledBlockerAmount = 0,
+        
+        updatedScoreMulAmount = 0,
         
         coinAsset = gameAssets["coin"],
         boardSprite = {

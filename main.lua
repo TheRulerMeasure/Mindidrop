@@ -18,6 +18,8 @@ love.load = function ()
         ["mindi_tower_sheet"] = love.graphics.newImage("assets/textures/mindi_tower_sheet.png"),
         ["mindi_pgbar_bg"] = love.graphics.newImage("assets/textures/mindi_progbar_background.png"),
         ["mindi_pgbar_over"] = love.graphics.newImage("assets/textures/mindi_progbar_over.png"),
+        ["label_sheet"] = love.graphics.newImage("assets/textures/label_sheet.png"),
+        ["boom_sheet"] = love.graphics.newImage("assets/textures/small_boom_sheet.png")
     })
 end
 
