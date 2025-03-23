@@ -44,7 +44,7 @@ return {
     maxPlayersCount = 2,
     
     maxRounds = 4,
-    maxRoundScores = { 12, 38, 24, 68 },
+    maxRoundScores = { 12, 44, 24, 82 },
     roundScoreMulSlots = {
         { 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, },
         { 34, 24, 13, 8, 5, 3, 2, 1, 1, 2, 3, 5, 8, 13, 24, 34, },

@@ -1,8 +1,8 @@
 -- center_label.lua
 
-local gameConst = require "game_const"
+local gameConst = require("game_const")
 
-local newSprite = require "sprite"
+local newSprite = require("sprite")
 
 local scaleRate = 0.15
 local maxDisplaySeconds = 4

@@ -5,6 +5,9 @@ return {
     playerWaiting = 2,
     playerStepping = 3,
     playerEnding = 4,
-    goingToNewRound = 5,
-    concluding = 6,
+    playerWaitingRoundEnding = 5,
+    playerSteppingRoundEnding = 6,
+    playerEndingRoundEnding = 7,
+    goingToNewRound = 8,
+    concluding = 9,
 }

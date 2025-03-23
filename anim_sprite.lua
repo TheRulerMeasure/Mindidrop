@@ -1,6 +1,6 @@
 -- anim_sprite.lua
 
-local newSprite = require "sprite"
+local newSprite = require("sprite")
 
 local newAnimSprite = function (img, x, y, animSpOpt)
     local sp = newSprite(img, x, y, {

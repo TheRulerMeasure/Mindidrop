@@ -1,15 +1,15 @@
 -- game.lua
 
-local gameConst = require "game_const"
-local gameStates = require "game_states"
+local gameConst = require("game_const")
+local gameStates = require("game_states")
 
-local gameStateProcs = require "game_state_processors"
+local gameStateProcs = require("game_state_processors")
 
-local newAnimSprite = require "anim_sprite"
+local newAnimSprite = require("anim_sprite")
 
-local newPlayerBox = require "player_box"
-local newExpldNum = require "exploding_num"
-local centerLabelClass = require "center_label"
+local newPlayerBox = require("player_box")
+local newExpldNum = require("exploding_num")
+local centerLabelClass = require("center_label")
 
 local newBlockerSprite = function (img, cellX, cellY)
     local x = cellX * gameConst.cellWidth
@@ -93,12 +93,20 @@ local debugPrintCoinMap = function (game)
     print("----coin map-----")
 end
 
+local changeToNextPlayer = function (game)
+    game.curPlayerIndex = game.curPlayerIndex + 1
+    if game.curPlayerIndex > gameConst.maxPlayersCount then
+        game.curPlayerIndex = 1
+    end
+end
+
 local blockerBlockLeft = function (game, x, y)
     game.blockerMap[y][x]         = gameConst.blockerLeft
     game.blockerMap[y][x + 1]     = 0
     game.blockerMap[y + 1][x]     = 0
     game.blockerMap[y + 1][x + 1] = gameConst.leverRight
     game:setBlockerSpBlockLeft(x, y)
+    love.audio.play(game.leverSound)
 end
 
 local blockerBlockRight = function (game, x, y)
@@ -107,6 +115,7 @@ local blockerBlockRight = function (game, x, y)
     game.blockerMap[y + 1][x]     = gameConst.leverLeft
     game.blockerMap[y + 1][x + 1] = 0
     game:setBlockerSpBlockRight(x, y)
+    love.audio.play(game.leverSound)
 end
 
 local leverLeftSwitch = function (game, x, y)
@@ -147,7 +156,10 @@ end
 local scoredAtSlot = function (game, slot)
     local amount = game.scoreMulSlots[slot].number
     game.players[game.curPlayerIndex].scores = game.players[game.curPlayerIndex].scores + amount
+    game.players[game.curPlayerIndex].totalScores = game.players[game.curPlayerIndex].totalScores + amount
     game.playerBoxes[game.curPlayerIndex]:setProgress(game.players[game.curPlayerIndex].scores)
+    game.playerBoxes[game.curPlayerIndex]:setNumProgress(game.curRoundIndex, game.players[game.curPlayerIndex].scores)
+    love.audio.play(game.coinScoreSound)
 end
 
 local addCoinAtCell = function (game, cellX, cellY, amount)
@@ -177,11 +189,13 @@ local handleBlockerCell = function (game, coin)
     if bCell == gameConst.blockerLeft then
         game:addCoinAtCell(coin.x, coin.y, -1)
         game.blockerMap[coin.y][coin.x] = gameConst.blockerCoinLeft
+        love.audio.play(game.coinHitSound)
         return true
     end
     if bCell == gameConst.blockerRight then
         game:addCoinAtCell(coin.x, coin.y, -1)
         game.blockerMap[coin.y][coin.x] = gameConst.blockerCoinRight
+        love.audio.play(game.coinHitSound)
         return true
     end
     return false
@@ -204,19 +218,23 @@ local handleBlockerCoinCell = function (game, coin)
     local curCell = game.blockerMap[coin.y][coin.x]
     if curCell == gameConst.blockerCoinLeft then
         game:coinMoveAndSetCell(coin, 1, 0)
+        love.audio.play(game.coinHitSound)
         return true
     end
     if curCell == gameConst.blockerCoinRight then
         game:coinMoveAndSetCell(coin, -1, 0)
+        love.audio.play(game.coinHitSound)
         return true
     end
     local bCell = game.blockerMap[coin.y + 1][coin.x]
     if bCell == gameConst.blockerCoinLeft then
         game:coinMoveAndSetCell(coin, 1, 1)
+        love.audio.play(game.coinHitSound)
         return true
     end
     if bCell == gameConst.blockerCoinRight then
         game:coinMoveAndSetCell(coin, -1, 1)
+        love.audio.play(game.coinHitSound)
         return true
     end
     return false
@@ -367,6 +385,7 @@ local update = function (game, dt)
     for i, v in ipairs(game.scoreMulSlots) do
         v:update(dt)
     end
+    return game.gameOver
 end
 
 local draw = function (game)
@@ -396,8 +415,10 @@ local draw = function (game)
     for i, v in ipairs(game.scoreMulSlots) do
         v:draw()
     end
+    love.graphics.setColor(0.1, 0.1, 0.1)
+    love.graphics.print("press [P] to go back to main menu.", 137, 763)
     if #game.stateLabel > 0 then
-        love.graphics.setColor(0.1, 0.1, 0.1)
+        -- love.graphics.setColor(0.1, 0.1, 0.1)
         local labelX = gameConst.windowWidth * 0.5
         labelX = labelX - #game.stateLabel * 4
         love.graphics.print(game.stateLabel, labelX, 10)
@@ -413,16 +434,20 @@ local keypressed = function (game, key, scancode)
         game:moveInsertSlot(1)
         return
     end
-    if scancode == 'down' or key == "space" or scancode == "return" or scancode == 's' then
-        if #game.movingCoins <= 0 and game.curState == gameStates.playerWaiting then
+    if scancode == "down" or key == "space" or scancode == "return" or scancode == 's' then
+        if #game.movingCoins <= 0 and (game.curState == gameStates.playerWaiting or game.curState == gameStates.playerWaitingRoundEnding) then
             if not game.players[game.curPlayerIndex].isCPU then
                 game:insertCoinFromSlot(game.curInsertSlot)
             end
         end
+        return
+    end
+    if scancode == 'p' and not game.gameOver then
+        game.gameOver = true
     end
 end
 
-return function (gameAssets)
+return function (gameAssets, withCPU)
     local blockersRow1 = {}
     for i = 1, 4 do
         local cellX = 5
@@ -467,9 +492,9 @@ return function (gameAssets)
     for i = 1, gameConst.mapWidth do
         local coordX, coordY
         coordX = (i-1) * gameConst.cellWidth
-        coordX = coordX + gameConst.boardOffsetX + 10
-        coordY = gameConst.boardOffsetY + gameConst.cellHeight * gameConst.mapHeight + 8
-        table.insert(scoreMulSlots, newExpldNum(gameAssets["boom_sheet"], coordX, coordY))
+        coordX = coordX + gameConst.boardOffsetX + 14
+        coordY = gameConst.boardOffsetY + gameConst.cellHeight * gameConst.mapHeight - 10
+        table.insert(scoreMulSlots, newExpldNum(gameAssets["boom_sheet"], gameAssets["explosion"], coordX, coordY))
     end
     
     return {
@@ -553,11 +578,13 @@ return function (gameAssets)
             {
                 isCPU = false,
                 scores = 0,
+                totalScores = 0,
                 victories = 0,
             },
             {
-                isCPU = true,
+                isCPU = withCPU,
                 scores = 0,
+                totalScores = 0,
                 victories = 0,
             },
         },
@@ -567,13 +594,13 @@ return function (gameAssets)
                             gameAssets["mindi_tower_sheet"],
                             gameAssets["mindi_pgbar_bg"],
                             gameAssets["mindi_pgbar_over"],
-                            gameConst.windowWidth * 0.2 - 32, 60,
+                            gameConst.windowWidth * 0.12 - 48, 180,
                             1),
             newPlayerBox(gameAssets["bubv_sheet"],
                             gameAssets["mindi_tower_sheet"],
                             gameAssets["mindi_pgbar_bg"],
                             gameAssets["mindi_pgbar_over"],
-                            gameConst.windowWidth * 0.8 - 32, 60,
+                            gameConst.windowWidth * 0.88 - 48, 180,
                             2),
         },
         
@@ -600,11 +627,19 @@ return function (gameAssets)
         
         updatedScoreMulAmount = 0,
         
+        gameOver = false,
+        
         coinAsset = gameAssets["coin"],
         boardSprite = {
             back = gameAssets["board_back"],
             front = gameAssets["board_front"],
         },
+        
+        coinHitSound = gameAssets["coin_hit_coin"],
+        coinScoreSound = gameAssets["coin_scored"],
+        leverSound = gameAssets["lever_move"],
+        roundBeginSound = gameAssets["round_begin"],
+        gameEndSound = gameAssets["game_end"],
         
         update = update,
         draw = draw,
@@ -634,6 +669,8 @@ return function (gameAssets)
         leverRightSwitch = leverRightSwitch,
         
         scoredAtSlot = scoredAtSlot,
+        
+        changeToNextPlayer = changeToNextPlayer,
         
         debugPrintCoinMap = debugPrintCoinMap,
     }
