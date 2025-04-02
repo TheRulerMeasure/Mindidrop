@@ -1,4 +1,4 @@
--- game.lua
+-- self.lua
 local gameAssets = require("game_assetloader")()
 local gameConst = require("game_const")
 local gameStates = require("game_states")
@@ -81,193 +81,193 @@ local newMoveResult = function (result, cellToInsertCoin)
     }
 end
 
-local debugPrintCoinMap = function (game)
+local debugPrintCoinMap = function (self)
     print("----coin map-----")
-    for y = 1, #game.coinMap do
+    for y = 1, #self.coinMap do
         local row = ""
-        for x = 1, #game.coinMap[y] do
-            row = row .. game.coinMap[y][x]
+        for x = 1, #self.coinMap[y] do
+            row = row .. self.coinMap[y][x]
         end
         print(row)
     end
     print("----coin map-----")
 end
 
-local changeToNextPlayer = function (game)
-    game.curPlayerIndex = game.curPlayerIndex + 1
-    if game.curPlayerIndex > gameConst.maxPlayersCount then
-        game.curPlayerIndex = 1
+local changeToNextPlayer = function (self)
+    self.curPlayerIndex = self.curPlayerIndex + 1
+    if self.curPlayerIndex > gameConst.maxPlayersCount then
+        self.curPlayerIndex = 1
     end
 end
 
-local blockerBlockLeft = function (game, x, y)
-    game.blockerMap[y][x]         = gameConst.blockerLeft
-    game.blockerMap[y][x + 1]     = 0
-    game.blockerMap[y + 1][x]     = 0
-    game.blockerMap[y + 1][x + 1] = gameConst.leverRight
-    game:setBlockerSpBlockLeft(x, y)
-    love.audio.play(game.leverSound)
+local blockerBlockLeft = function (self, x, y)
+    self.blockerMap[y][x]         = gameConst.blockerLeft
+    self.blockerMap[y][x + 1]     = 0
+    self.blockerMap[y + 1][x]     = 0
+    self.blockerMap[y + 1][x + 1] = gameConst.leverRight
+    self:setBlockerSpBlockLeft(x, y)
+    love.audio.play(self.leverSound)
 end
 
-local blockerBlockRight = function (game, x, y)
-    game.blockerMap[y][x]         = 0
-    game.blockerMap[y][x + 1]     = gameConst.blockerRight
-    game.blockerMap[y + 1][x]     = gameConst.leverLeft
-    game.blockerMap[y + 1][x + 1] = 0
-    game:setBlockerSpBlockRight(x, y)
-    love.audio.play(game.leverSound)
+local blockerBlockRight = function (self, x, y)
+    self.blockerMap[y][x]         = 0
+    self.blockerMap[y][x + 1]     = gameConst.blockerRight
+    self.blockerMap[y + 1][x]     = gameConst.leverLeft
+    self.blockerMap[y + 1][x + 1] = 0
+    self:setBlockerSpBlockRight(x, y)
+    love.audio.play(self.leverSound)
 end
 
-local leverLeftSwitch = function (game, x, y)
-    game:blockerBlockLeft(x, y - 1)
+local leverLeftSwitch = function (self, x, y)
+    self:blockerBlockLeft(x, y - 1)
     
-    if game.blockerMap[y - 2][x + 1] == gameConst.blockerCoinRight then
-        game.blockerMap[y - 2][x + 1] = 0
+    if self.blockerMap[y - 2][x + 1] == gameConst.blockerCoinRight then
+        self.blockerMap[y - 2][x + 1] = 0
         local cellToInsertCoin = { x = x + 1, y = y - 3 }
         return cellToInsertCoin
     end
     return nil
 end
 
-local leverRightSwitch = function (game, x, y)
-    game:blockerBlockRight(x - 1, y - 1)
+local leverRightSwitch = function (self, x, y)
+    self:blockerBlockRight(x - 1, y - 1)
     
-    if game.blockerMap[y - 2][x - 1] == gameConst.blockerCoinLeft then
-        game.blockerMap[y - 2][x - 1] = 0
+    if self.blockerMap[y - 2][x - 1] == gameConst.blockerCoinLeft then
+        self.blockerMap[y - 2][x - 1] = 0
         local cellToInsertCoin = { x = x - 1, y = y - 3 }
         return cellToInsertCoin
     end
     return nil
 end
 
-local moveInsertSlot = function (game, dx)
+local moveInsertSlot = function (self, dx)
     local dx2 = math.min(math.max(dx or 1, -1), 1)
     dx2 = math.floor(dx2)
-    local slot = game.curInsertSlot
+    local slot = self.curInsertSlot
     slot = slot + dx2
     slot = math.min(math.max(slot, 1), 8)
-    game.curInsertSlot = slot
-    local x = (game.curInsertSlot + 4) * gameConst.cellWidth
+    self.curInsertSlot = slot
+    local x = (self.curInsertSlot + 4) * gameConst.cellWidth
     x = x + gameConst.boardOffsetX
-    game.arrowSprite.x = x - 12
-    game.arrowSprite:play("dance")
+    self.arrowSprite.x = x - 12
+    self.arrowSprite:play("dance")
 end
 
-local scoredAtSlot = function (game, slot)
-    local amount = game.scoreMulSlots[slot].number
-    game.players[game.curPlayerIndex].scores = game.players[game.curPlayerIndex].scores + amount
-    game.players[game.curPlayerIndex].totalScores = game.players[game.curPlayerIndex].totalScores + amount
-    game.playerBoxes[game.curPlayerIndex]:setProgress(game.players[game.curPlayerIndex].scores)
-    game.playerBoxes[game.curPlayerIndex]:setNumProgress(game.curRoundIndex, game.players[game.curPlayerIndex].scores)
-    love.audio.play(game.coinScoreSound)
+local scoredAtSlot = function (self, slot)
+    local amount = self.scoreMulSlots[slot].number
+    self.players[self.curPlayerIndex].scores = self.players[self.curPlayerIndex].scores + amount
+    self.players[self.curPlayerIndex].totalScores = self.players[self.curPlayerIndex].totalScores + amount
+    self.playerBoxes[self.curPlayerIndex]:setProgress(self.players[self.curPlayerIndex].scores)
+    self.playerBoxes[self.curPlayerIndex]:setNumProgress(self.curRoundIndex, self.players[self.curPlayerIndex].scores)
+    love.audio.play(self.coinScoreSound)
 end
 
-local addCoinAtCell = function (game, cellX, cellY, amount)
+local addCoinAtCell = function (self, cellX, cellY, amount)
     local a = math.floor(amount or 1)
-    game.coinMap[cellY][cellX] = game.coinMap[cellY][cellX] + a
+    self.coinMap[cellY][cellX] = self.coinMap[cellY][cellX] + a
 end
 
-local coinMoveAndSetCell = function (game, coin, dx, dy)
+local coinMoveAndSetCell = function (self, coin, dx, dy)
     local dx2 = math.floor(dx or 0)
     local dy2 = math.floor(dy or 0)
-    game:addCoinAtCell(coin.x, coin.y, -1)
+    self:addCoinAtCell(coin.x, coin.y, -1)
     coin.x = coin.x + dx2
     coin.y = coin.y + dy2
-    game:addCoinAtCell(coin.x, coin.y, 1)
+    self:addCoinAtCell(coin.x, coin.y, 1)
 end
 
-local handleScoreCell = function (game, coin)
+local handleScoreCell = function (self, coin)
     if coin.y + 1 > gameConst.mapHeight then
-        game:addCoinAtCell(coin.x, coin.y, -1)
+        self:addCoinAtCell(coin.x, coin.y, -1)
         return true
     end
     return false
 end
 
-local handleBlockerCell = function (game, coin)
-    local bCell = game.blockerMap[coin.y + 1][coin.x]
+local handleBlockerCell = function (self, coin)
+    local bCell = self.blockerMap[coin.y + 1][coin.x]
     if bCell == gameConst.blockerLeft then
-        game:addCoinAtCell(coin.x, coin.y, -1)
-        game.blockerMap[coin.y][coin.x] = gameConst.blockerCoinLeft
-        love.audio.play(game.coinHitSound)
+        self:addCoinAtCell(coin.x, coin.y, -1)
+        self.blockerMap[coin.y][coin.x] = gameConst.blockerCoinLeft
+        love.audio.play(self.coinHitSound)
         return true
     end
     if bCell == gameConst.blockerRight then
-        game:addCoinAtCell(coin.x, coin.y, -1)
-        game.blockerMap[coin.y][coin.x] = gameConst.blockerCoinRight
-        love.audio.play(game.coinHitSound)
+        self:addCoinAtCell(coin.x, coin.y, -1)
+        self.blockerMap[coin.y][coin.x] = gameConst.blockerCoinRight
+        love.audio.play(self.coinHitSound)
         return true
     end
     return false
 end
 
-local handleLeverCell = function (game, coin)
-    local bCell = game.blockerMap[coin.y + 1][coin.x]
+local handleLeverCell = function (self, coin)
+    local bCell = self.blockerMap[coin.y + 1][coin.x]
     if bCell == gameConst.leverLeft then
-        local cellToInsertCoin = game:leverLeftSwitch(coin.x, coin.y + 1)
+        local cellToInsertCoin = self:leverLeftSwitch(coin.x, coin.y + 1)
         return cellToInsertCoin
     end
     if bCell == gameConst.leverRight then
-        local cellToInsertCoin = game:leverRightSwitch(coin.x, coin.y + 1)
+        local cellToInsertCoin = self:leverRightSwitch(coin.x, coin.y + 1)
         return cellToInsertCoin
     end
     return nil
 end
 
-local handleBlockerCoinCell = function (game, coin)
-    local curCell = game.blockerMap[coin.y][coin.x]
+local handleBlockerCoinCell = function (self, coin)
+    local curCell = self.blockerMap[coin.y][coin.x]
     if curCell == gameConst.blockerCoinLeft then
-        game:coinMoveAndSetCell(coin, 1, 0)
-        love.audio.play(game.coinHitSound)
+        self:coinMoveAndSetCell(coin, 1, 0)
+        love.audio.play(self.coinHitSound)
         return true
     end
     if curCell == gameConst.blockerCoinRight then
-        game:coinMoveAndSetCell(coin, -1, 0)
-        love.audio.play(game.coinHitSound)
+        self:coinMoveAndSetCell(coin, -1, 0)
+        love.audio.play(self.coinHitSound)
         return true
     end
-    local bCell = game.blockerMap[coin.y + 1][coin.x]
+    local bCell = self.blockerMap[coin.y + 1][coin.x]
     if bCell == gameConst.blockerCoinLeft then
-        game:coinMoveAndSetCell(coin, 1, 1)
-        love.audio.play(game.coinHitSound)
+        self:coinMoveAndSetCell(coin, 1, 1)
+        love.audio.play(self.coinHitSound)
         return true
     end
     if bCell == gameConst.blockerCoinRight then
-        game:coinMoveAndSetCell(coin, -1, 1)
-        love.audio.play(game.coinHitSound)
+        self:coinMoveAndSetCell(coin, -1, 1)
+        love.audio.play(self.coinHitSound)
         return true
     end
     return false
 end
 
-local coinMoveDown = function (game, coin)
-    local hasScored = game:handleScoreCell(coin)
+local coinMoveDown = function (self, coin)
+    local hasScored = self:handleScoreCell(coin)
     if hasScored then
         return newMoveResult("scored", nil)
     end
-    local hasBlockerCoin = game:handleBlockerCoinCell(coin)
+    local hasBlockerCoin = self:handleBlockerCoinCell(coin)
     if hasBlockerCoin then
         return newMoveResult("moved", nil)
     end
-    local hasBlocker = game:handleBlockerCell(coin)
+    local hasBlocker = self:handleBlockerCell(coin)
     if hasBlocker then
         return newMoveResult("blocked", nil)
     end
-    local cellToInsertCoin = game:handleLeverCell(coin)
-    game:coinMoveAndSetCell(coin, 0, 1)
+    local cellToInsertCoin = self:handleLeverCell(coin)
+    self:coinMoveAndSetCell(coin, 0, 1)
     return newMoveResult("moved", cellToInsertCoin)
 end
 
-local coinAllMoveDown = function (game)
+local coinAllMoveDown = function (self)
     local indexesTBR = {}
     local coinsToBeInserted = {}
-    for i, v in ipairs(game.movingCoins) do
-        local moveResult = game:coinMoveDown(v)
+    for i, v in ipairs(self.movingCoins) do
+        local moveResult = self:coinMoveDown(v)
         if moveResult.result == "blocked" then
             table.insert(indexesTBR, i)
         elseif moveResult.result == "scored" then
             table.insert(indexesTBR, i)
-            game:scoredAtSlot(v.x)
+            self:scoredAtSlot(v.x)
         else
             if moveResult.cellToInsertCoin then
                 table.insert(coinsToBeInserted, moveResult.cellToInsertCoin)
@@ -276,45 +276,45 @@ local coinAllMoveDown = function (game)
     end
     if #indexesTBR > 0 then
         for i = #indexesTBR, 1, -1 do
-            table.remove(game.movingCoins, indexesTBR[i])
+            table.remove(self.movingCoins, indexesTBR[i])
         end
     end
     for i, v in ipairs(coinsToBeInserted) do
-        game:insertCoin(v.x, v.y)
+        self:insertCoin(v.x, v.y)
     end
     -- debug
-    -- game:debugPrintCoinMap()
-    return #game.movingCoins > 0
+    -- self:debugPrintCoinMap()
+    return #self.movingCoins > 0
 end
 
-local insertCoin = function (game, cellX, cellY)
+local insertCoin = function (self, cellX, cellY)
     local x = math.floor(cellX)
     local y = math.floor(cellY)
-    local coin = newCoinSprite(game.coinAsset, x, y)
-    table.insert(game.movingCoins, coin)
-    game:addCoinAtCell(x, y, 1)
+    local coin = newCoinSprite(self.coinAsset, x, y)
+    table.insert(self.movingCoins, coin)
+    self:addCoinAtCell(x, y, 1)
 end
 
-local insertCoinFromSlot = function (game, slot)
+local insertCoinFromSlot = function (self, slot)
     local clampedSlot = math.min(math.max(slot or 1, 1), 8)
     clampedSlot = math.floor(clampedSlot)
     local x = clampedSlot + 4
     local y = 1
-    game:insertCoin(x, y)
+    self:insertCoin(x, y)
 end
 
-local getBlockerSpriteAtCell = function (game, cellX, cellY)
+local getBlockerSpriteAtCell = function (self, cellX, cellY)
     local row
     if cellY == 4 then
-        row = game.blockerSprites[1]
+        row = self.blockerSprites[1]
     elseif cellY == 8 then
-        row = game.blockerSprites[2]
+        row = self.blockerSprites[2]
     elseif cellY == 12 then
-        row = game.blockerSprites[3]
+        row = self.blockerSprites[3]
     elseif cellY == 16 then
-        row = game.blockerSprites[4]
+        row = self.blockerSprites[4]
     elseif cellY == 20 then
-        row = game.blockerSprites[5]
+        row = self.blockerSprites[5]
     end
     
     for i, v in ipairs(row) do
@@ -325,8 +325,8 @@ local getBlockerSpriteAtCell = function (game, cellX, cellY)
     return nil
 end
 
-local setBlockerSpBlockLeft = function (game, cellX, cellY)
-    local sprite = game:getBlockerSpriteAtCell(cellX, cellY)
+local setBlockerSpBlockLeft = function (self, cellX, cellY)
+    local sprite = self:getBlockerSpriteAtCell(cellX, cellY)
     if not sprite then
         print("Error: blocker sprite does not exist at " .. cellX .. ", " .. cellY)
         return
@@ -334,8 +334,8 @@ local setBlockerSpBlockLeft = function (game, cellX, cellY)
     sprite:play("block_left")
 end
 
-local setBlockerSpBlockRight = function (game, cellX, cellY)
-    local sprite = game:getBlockerSpriteAtCell(cellX, cellY)
+local setBlockerSpBlockRight = function (self, cellX, cellY)
+    local sprite = self:getBlockerSpriteAtCell(cellX, cellY)
     if not sprite then
         print("Error: blocker sprite does not exist at " .. cellX .. ", " .. cellY)
         return
@@ -371,79 +371,79 @@ local drawBlockerSpritesRow = function (row)
     end
 end
 
-local update = function (game, dt)
-    local newState = gameStateProcs(game, dt)
-    game.curState = newState
+local update = function (self, dt)
+    local newState = gameStateProcs(self, dt)
+    self.curState = newState
 
-    game.arrowSprite:update(dt)
-    game.centerLabel:update(dt)
-    for i, row in ipairs(game.blockerSprites) do
+    self.arrowSprite:update(dt)
+    self.centerLabel:update(dt)
+    for i, row in ipairs(self.blockerSprites) do
         for j, v in ipairs(row) do
             v.sprite:update(dt)
         end
     end
-    for i, v in ipairs(game.scoreMulSlots) do
+    for i, v in ipairs(self.scoreMulSlots) do
         v:update(dt)
     end
-    return game.gameOver
+    return self.gameOver
 end
 
-local draw = function (game)
+local draw = function (self)
     local boardX, boardY
     boardX = gameConst.boardOffsetX - 24
     boardY = gameConst.boardOffsetY - 24
     love.graphics.setColor(1, 1, 1)
-    love.graphics.draw(game.boardSprite.back, boardX, boardY)
+    love.graphics.draw(self.boardSprite.back, boardX, boardY)
     for y = 1, gameConst.mapHeight do
         for x = 1, gameConst.mapWidth do
-            drawBlocker(game.blockerMap[y][x], x, y, game.coinAsset)
+            drawBlocker(self.blockerMap[y][x], x, y, self.coinAsset)
         end
     end
-    for i, v in ipairs(game.blockerSprites) do
+    for i, v in ipairs(self.blockerSprites) do
         drawBlockerSpritesRow(v)
     end
-    for i, v in ipairs(game.movingCoins) do
+    for i, v in ipairs(self.movingCoins) do
         drawCoin(v)
     end
     love.graphics.setColor(1, 1, 1)
-    love.graphics.draw(game.boardSprite.front, boardX, boardY)
-    game.arrowSprite:draw()
-    game.centerLabel:draw()
-    for i, v in ipairs(game.playerBoxes) do
+    love.graphics.draw(self.boardSprite.front, boardX, boardY)
+    self.arrowSprite:draw()
+    self.centerLabel:draw()
+    for i, v in ipairs(self.playerBoxes) do
         v:draw()
     end
-    for i, v in ipairs(game.scoreMulSlots) do
+    for i, v in ipairs(self.scoreMulSlots) do
         v:draw()
     end
     love.graphics.setColor(0.1, 0.1, 0.1)
     love.graphics.print("press [P] to go back to main menu.", 137, 763)
-    if #game.stateLabel > 0 then
+    if #self.stateLabel > 0 then
         -- love.graphics.setColor(0.1, 0.1, 0.1)
         local labelX = gameConst.windowWidth * 0.5
-        labelX = labelX - #game.stateLabel * 4
-        love.graphics.print(game.stateLabel, labelX, 10)
+        labelX = labelX - #self.stateLabel * 4
+        love.graphics.print(self.stateLabel, labelX, 10)
     end
 end
 
-local keypressed = function (game, key, scancode)
+local keypressed = function (self, key, scancode)
     if scancode == 'a' or scancode == "left" then
-        game:moveInsertSlot(-1)
+        self:moveInsertSlot(-1)
         return
     end
     if scancode == 'd' or scancode == "right" then
-        game:moveInsertSlot(1)
+        self:moveInsertSlot(1)
         return
     end
     if scancode == "down" or key == "space" or scancode == "return" or scancode == 's' then
-        if #game.movingCoins <= 0 and (game.curState == gameStates.playerWaiting or game.curState == gameStates.playerWaitingRoundEnding) then
-            if not game.players[game.curPlayerIndex].isCPU then
-                game:insertCoinFromSlot(game.curInsertSlot)
+        if #self.movingCoins <= 0 and (self.curState == gameStates.playerWaiting or self.curState == gameStates.playerWaitingRoundEnding) then
+            if not self.players[self.curPlayerIndex].isCPU then
+                self:insertCoinFromSlot(self.curInsertSlot)
             end
         end
         return
     end
-    if scancode == 'p' and not game.gameOver then
-        game.gameOver = true
+    if scancode == 'p' and not self.gameOver then
+        self.gameOver = true
     end
 end
 
