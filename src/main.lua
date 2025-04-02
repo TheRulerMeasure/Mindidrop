@@ -1,5 +1,6 @@
 -- main.lua
 local gameConst = require("game_const")
+local gameLocale = require("game_locale")
 local newAnimSprite = require("anim_sprite")
 local newGame = require("game")
 
@@ -8,9 +9,9 @@ local menuButtonX = 300
 local menuButtonY = 386
 local menuButtonSpacing = 64
 local menuButtonLabels = {
-    "Player vs Computer",
-    "Player vs Player",
-    "Exit",
+    gameLocale.button_pve,
+    gameLocale.button_pvp,
+    gameLocale.button_exit,
 }
 
 local newMainMenu = function ()

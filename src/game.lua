@@ -2,6 +2,7 @@
 local gameAssets = require("game_assetloader")()
 local gameConst = require("game_const")
 local gameStates = require("game_states")
+local gameLocale = require("game_locale")
 
 local gameStateProcs = require("game_state_processors")
 
@@ -417,7 +418,7 @@ local draw = function (self)
         v:draw()
     end
     love.graphics.setColor(0.1, 0.1, 0.1)
-    love.graphics.print("press [P] to go back to main menu.", 137, 763)
+    love.graphics.print(gameLocale.msg_pause, 137, 763)
     if #self.stateLabel > 0 then
         -- love.graphics.setColor(0.1, 0.1, 0.1)
         local labelX = gameConst.windowWidth * 0.5
