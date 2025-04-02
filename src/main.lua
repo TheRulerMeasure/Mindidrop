@@ -82,13 +82,12 @@ end
 -- 2 = game is running 
 local currentGameState = 1
 
+-- the active instance of the main-menu
 local mainMenu = nil
+-- our current instance of the game 
 local game = nil
 
 love.load = function ()
-    love.graphics.setBackgroundColor(love.math.colorFromBytes(117, 107, 95))
-    local newFont = love.graphics.newImageFont("assets/fonts/dojmun_font_line_lv.png", " abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789~`!@#$%^&*()_-+=[{]}\\|;:'\",<.>/?")
-    love.graphics.setFont(newFont)
     mainMenu = newMainMenu()
 end
 
@@ -125,7 +124,7 @@ end
 
 love.draw = function ()
     if currentGameState == 2 then
-        game:draw(0)
+        game:draw()
     else
         mainMenu:draw()
     end
