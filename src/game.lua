@@ -1,5 +1,5 @@
 -- game.lua
-
+local gameAssets = require("game_assetloader")()
 local gameConst = require("game_const")
 local gameStates = require("game_states")
 
@@ -447,7 +447,7 @@ local keypressed = function (game, key, scancode)
     end
 end
 
-return function (gameAssets, withCPU)
+return function (withCPU)
     local blockersRow1 = {}
     for i = 1, 4 do
         local cellX = 5

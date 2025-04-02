@@ -1,6 +1,9 @@
 -- main.lua
+local gameConst = require("game_const")
+local newAnimSprite = require("anim_sprite")
+local newGame = require("game")
 
-local maxMenuButtons = 3
+
 local menuButtonX = 300
 local menuButtonY = 386
 local menuButtonSpacing = 64
@@ -9,12 +12,6 @@ local menuButtonLabels = {
     "Player vs Player",
     "Exit",
 }
-
-local gameConst = require("game_const")
-
-local newAnimSprite = require("anim_sprite")
-
-local newGame = require("game")
 
 local newMainMenu = function ()
     local mm = {}
@@ -64,7 +61,7 @@ local newMainMenu = function ()
             this:setArrowSpritePosFromIndex(this.curChoiceIndex)
         elseif scancode == "down" or scancode == 's' then
             this.curChoiceIndex = this.curChoiceIndex + 1
-            this.curChoiceIndex = math.min(this.curChoiceIndex, maxMenuButtons)
+            this.curChoiceIndex = math.min(this.curChoiceIndex, #menuButtonLabels)
             this:setArrowSpritePosFromIndex(this.curChoiceIndex)
         elseif scancode == "return" or key == "space" then
             this.choice = this.curChoiceIndex
@@ -78,28 +75,12 @@ local newMainMenu = function ()
     return mm
 end
 
-local getGameAssets = function () return {
-    ["blocker_sheet"] = love.graphics.newImage("assets/textures/blocker_sheet.png"),
-    ["coin"] = love.graphics.newImage("assets/textures/coin.png"),
-    ["insert_arrow_sheet"] = love.graphics.newImage("assets/textures/insert_arrow_sheet.png"),
-    ["board_front"] = love.graphics.newImage("assets/textures/board_front.png"),
-    ["board_back"] = love.graphics.newImage("assets/textures/board_back.png"),
-    ["bubv_sheet"] = love.graphics.newImage("assets/textures/bubv_sheet.png"),
-    ["mindi_tower_sheet"] = love.graphics.newImage("assets/textures/mindi_tower_sheet.png"),
-    ["mindi_pgbar_bg"] = love.graphics.newImage("assets/textures/mindi_progbar_background.png"),
-    ["mindi_pgbar_over"] = love.graphics.newImage("assets/textures/mindi_progbar_over.png"),
-    ["label_sheet"] = love.graphics.newImage("assets/textures/label_sheet.png"),
-    ["boom_sheet"] = love.graphics.newImage("assets/textures/small_boom_sheet.png"),
-    
-    ["coin_hit_coin"] = love.audio.newSource("assets/sounds/coin_hit_coin.wav", "static"),
-    ["coin_scored"] = love.audio.newSource("assets/sounds/coin_scored.wav", "static"),
-    ["explosion"] = love.audio.newSource("assets/sounds/explosion.wav", "static"),
-    ["lever_move"] = love.audio.newSource("assets/sounds/lever_move.wav", "static"),
-    ["game_end"] = love.audio.newSource("assets/sounds/game_end.wav", "static"),
-    ["round_begin"] = love.audio.newSource("assets/sounds/round_begin.wav", "static"),
-} end
 
-local curState = 1
+
+-- This is the current game state where : 
+-- 1 = initial load
+-- 2 = game is running 
+local currentGameState = 1
 
 local mainMenu = nil
 local game = nil
@@ -112,31 +93,38 @@ love.load = function ()
 end
 
 love.update = function (dt)
-    if curState == 2 then
+    -- if the game is running, keep retriggering the gameplayloop.
+    if currentGameState == 2 then
         local isOver = game:update(dt)
         if isOver then
             game = nil
             mainMenu = newMainMenu()
-            curState = 1
+            currentGameState = 1
         end
-    else
-        local choice = mainMenu:update(dt)
-        if choice == 1 then
-            game = newGame(getGameAssets(), true)
-            mainMenu = nil
-            curState = 2
-        elseif choice == 2 then
-            game = newGame(getGameAssets(), false)
-            mainMenu = nil
-            curState = 2
-        elseif choice == 3 then
-            love.event.quit(0)
-        end
+        return
     end
+
+    -- we are still in the main menu, handle that input.
+    -- 0: no choice made, 1: vs CPU, 2: vs player, 3: Quit
+    local choice = mainMenu:update(dt)
+    if choice == 0 then 
+        return
+    end
+    
+    if choice == 3 then
+        love.event.quit(0)
+        return
+    end
+
+    -- initialise a new game
+    local withCPU = (choice == 1)
+    game = newGame(withCPU)
+    mainMenu = nil
+    currentGameState = 2
 end
 
 love.draw = function ()
-    if curState == 2 then
+    if currentGameState == 2 then
         game:draw(0)
     else
         mainMenu:draw()
@@ -144,7 +132,7 @@ love.draw = function ()
 end
 
 love.keypressed = function (key, scancode)
-    if curState == 2 then
+    if currentGameState == 2 then
         game:keypressed(key, scancode)
     else
         mainMenu:keypressed(key, scancode)
