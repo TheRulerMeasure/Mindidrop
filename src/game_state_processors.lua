@@ -1,7 +1,5 @@
 -- game_state_processors.lua
-
 local gameConst = require("game_const")
-
 local gameStates = require("game_states")
 
 local updateBeginning = function (game, dt)

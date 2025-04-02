@@ -1,7 +1,5 @@
 -- center_label.lua
-
 local gameConst = require("game_const")
-
 local newSprite = require("sprite")
 
 local scaleRate = 0.15

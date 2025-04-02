@@ -1,11 +1,10 @@
 -- player_box.lua
+local gameConst = require("game_const")
+local newSprite = require("sprite")
 
 local boxWidth = 4
 local boxHeight = 6
 
-local gameConst = require("game_const")
-
-local newSprite = require("sprite")
 
 local newPlBox = function (patchImg, mindiImg, pgbarBg, pgbarOver, x, y, plIndex)
     local box = {}
