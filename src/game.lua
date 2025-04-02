@@ -185,14 +185,14 @@ local handleScoreCell = function (self, coin)
 end
 
 local handleBlockerCell = function (self, coin)
-    local bCell = self.blockerMap[coin.y + 1][coin.x]
-    if bCell == gameConst.blockerLeft then
+    local nextCell = self.blockerMap[coin.y + 1][coin.x]
+    if nextCell == gameConst.blockerLeft then
         self:addCoinAtCell(coin.x, coin.y, -1)
         self.blockerMap[coin.y][coin.x] = gameConst.blockerCoinLeft
         love.audio.play(self.coinHitSound)
         return true
     end
-    if bCell == gameConst.blockerRight then
+    if nextCell == gameConst.blockerRight then
         self:addCoinAtCell(coin.x, coin.y, -1)
         self.blockerMap[coin.y][coin.x] = gameConst.blockerCoinRight
         love.audio.play(self.coinHitSound)
@@ -202,41 +202,42 @@ local handleBlockerCell = function (self, coin)
 end
 
 local handleLeverCell = function (self, coin)
-    local bCell = self.blockerMap[coin.y + 1][coin.x]
-    if bCell == gameConst.leverLeft then
+    local nextCell = self.blockerMap[coin.y + 1][coin.x]
+    if nextCell == gameConst.leverLeft then
         local cellToInsertCoin = self:leverLeftSwitch(coin.x, coin.y + 1)
         return cellToInsertCoin
     end
-    if bCell == gameConst.leverRight then
+    if nextCell == gameConst.leverRight then
         local cellToInsertCoin = self:leverRightSwitch(coin.x, coin.y + 1)
         return cellToInsertCoin
     end
     return nil
 end
 
+-- this function checks if we are hitting a blocker in the current cell or the next cel, if so- it plays a sound & exits.
 local handleBlockerCoinCell = function (self, coin)
     local curCell = self.blockerMap[coin.y][coin.x]
+    local nextCell = self.blockerMap[coin.y + 1][coin.x]
+    local newPos = nil
+    
     if curCell == gameConst.blockerCoinLeft then
-        self:coinMoveAndSetCell(coin, 1, 0)
+        newPos = {1,0};
+    elseif curCell == gameConst.blockerCoinRight then
+        newPos = {-1,0};
+    elseif nextCell == gameConst.blockerCoinLeft then
+        newPos = {1,1};
+    elseif nextCell == gameConst.blockerCoinRight then
+        newPos = {-1,1};
+    end
+
+    if newPos ~= nil then
+        -- the coin collided with a blocker, stop it and play a sound.
+        self:coinMoveAndSetCell(coin, newPos[1], newPos[2])
         love.audio.play(self.coinHitSound)
         return true
     end
-    if curCell == gameConst.blockerCoinRight then
-        self:coinMoveAndSetCell(coin, -1, 0)
-        love.audio.play(self.coinHitSound)
-        return true
-    end
-    local bCell = self.blockerMap[coin.y + 1][coin.x]
-    if bCell == gameConst.blockerCoinLeft then
-        self:coinMoveAndSetCell(coin, 1, 1)
-        love.audio.play(self.coinHitSound)
-        return true
-    end
-    if bCell == gameConst.blockerCoinRight then
-        self:coinMoveAndSetCell(coin, -1, 1)
-        love.audio.play(self.coinHitSound)
-        return true
-    end
+
+    -- the coin passed through without getting blocked
     return false
 end
 
