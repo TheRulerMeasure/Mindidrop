@@ -1,0 +1,17 @@
+{
+	"name": "testlove",
+	"module": "index.ts",
+	"type": "module",
+	"scripts": {
+		"postinstall": "wget https://github.com/love2d/love/releases/download/11.5/love-11.5-x86_64.AppImage -O redist/love-11.5-x86_64.AppImage",
+		"start": "appimage-run ./redist/love-11.5-x86_64.AppImage src",
+		"dev": "nodemon --exec \"appimage-run ./redist/love-11.5-x86_64.AppImage src\" --watch src --ext lua"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"nodemon": "^3.1.9"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	}
+}
