@@ -448,47 +448,34 @@ local keypressed = function (self, key, scancode)
     end
 end
 
-return function (withCPU)
-    local blockersRow1 = {}
-    for i = 1, 4 do
-        local cellX = 5
-        cellX = cellX + (i-1) * 2
-        local cellY = 4
-        table.insert(blockersRow1, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
+local blockerGenerator = function()
+    -- these are the rows of blockers
+    -- each blocker takes 4 cells (topleft, topright, bottomleft, bottomright)
+    -- and the cellX, cellY is the topleft
+   
+    local baseCellX = 5
+    local baseCellY = 4
+
+    local blockerRows = {
+        {},{},{},{},{}
+    }
+
+    for j = 1, #blockerRows do
+        for i = 1, 3 + j do
+            local cellX = baseCellX
+            cellX = cellX + (i-1) * 2
+            local cellY = baseCellY
+            table.insert(blockerRows[j], newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
+        end
+        -- prepare for next row
+        baseCellX = baseCellX - 1
+        baseCellY = baseCellY + 4
     end
-    
-    local blockersRow2 = {}
-    for i = 1, 5 do
-        local cellX = 4
-        cellX = cellX + (i-1) * 2
-        local cellY = 8
-        table.insert(blockersRow2, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
-    end
-    
-    local blockersRow3 = {}
-    for i = 1, 6 do
-        local cellX = 3
-        cellX = cellX + (i-1) * 2
-        local cellY = 12
-        table.insert(blockersRow3, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
-    end
-    
-    local blockersRow4 = {}
-    for i = 1, 7 do
-        local cellX = 2
-        cellX = cellX + (i-1) * 2
-        local cellY = 16
-        table.insert(blockersRow4, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
-    end
-    
-    local blockersRow5 = {}
-    for i = 1, 8 do
-        local cellX = 1
-        cellX = cellX + (i-1) * 2
-        local cellY = 20
-        table.insert(blockersRow5, newBlockerSprite(gameAssets["blocker_sheet"], cellX, cellY))
-    end
-    
+
+    return blockerRows
+end
+
+return function (withCPU)    
     local scoreMulSlots = {}
     for i = 1, gameConst.mapWidth do
         local coordX, coordY
@@ -565,13 +552,7 @@ return function (withCPU)
         
         movingCoins = {},
         
-        blockerSprites = {
-            blockersRow1,
-            blockersRow2,
-            blockersRow3,
-            blockersRow4,
-            blockersRow5,
-        },
+        blockerSprites = blockerGenerator(),
         
         centerLabel = centerLabelClass.new(gameAssets["label_sheet"]),
         
